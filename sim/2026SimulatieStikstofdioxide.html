@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NO₂ + CO Reactiesimulatie</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f5f4f0; color: #2c2c2a; padding: 20px; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #5f5e5a; margin-bottom: 14px; }
+  canvas { display: block; border: 1px solid #d3d1c7; border-radius: 10px; background: #eeecea; width: 100%; }
+  .stat-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin: 10px 0; }
+  .stat { background: #eeecea; border-radius: 8px; padding: 8px 10px; }
+  .stat .lbl { font-size: 11px; color: #5f5e5a; margin-bottom: 2px; }
+  .stat .val { font-size: 20px; font-weight: 500; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 12px; font-size: 12px; color: #5f5e5a; align-items: center; }
+  .dot { width: 13px; height: 13px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 4px; border: 1.5px solid rgba(0,0,0,0.15); }
+  .section-label { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: .05em; margin: 12px 0 5px; }
+  .ctrl { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; color: #5f5e5a; }
+  .ctrl label { min-width: 110px; }
+  .ctrl input[type=range] { flex: 1; }
+  .ctrl .val-out { min-width: 80px; font-size: 13px; font-weight: 500; color: #2c2c2a; }
+  input[type=range] { accent-color: #378ADD; }
+  .hint { background: #faeeda; border: 1px solid #efcf8a; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #633806; margin: 10px 0 6px; line-height: 1.6; }
+  .vergelijking { background: #fff; border: 1px solid #d3d1c7; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #2c2c2a; line-height: 1.8; }
+  .vergelijking strong { font-weight: 500; }
+  .btns { display: flex; gap: 8px; margin: 12px 0 6px; }
+  button { padding: 7px 16px; border: 1px solid #b4b2a9; border-radius: 8px; background: #fff; color: #2c2c2a; font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  button:hover { background: #eeecea; }
+  button:active { transform: scale(0.97); }
+  #log { font-size: 11px; color: #5f5e5a; height: 52px; overflow: hidden; line-height: 1.8; margin-top: 6px; border-top: 1px solid #d3d1c7; padding-top: 6px; }
+</style>
+</head>
+<body>
+
+<h1>NO₂ + CO — Moleculaire reactiesimulatie</h1>
+<p class="subtitle">Meerstapsreactie: 2 NO₂ + CO → 2 NO + CO₂ &nbsp;|&nbsp; Snelheidswet: <strong>v = k[NO₂]²</strong></p>
+
+<div class="vergelijking">
+  <strong>Stap 1 (snelheidsbepalend):</strong> NO₂ + NO₂ → NO₃ + NO<br>
+  <strong>Stap 2:</strong> NO₃ + CO → NO₂ + CO₂<br>
+  <strong>Totaal:</strong> NO₂ + CO → NO + CO₂
+</div>
+
+<canvas id="sim-canvas" width="680" height="370"></canvas>
+
+<div class="stat-row">
+  <div class="stat"><div class="lbl">NO₂</div><div class="val" id="s-no2" style="color:#E24B4A">0</div></div>
+  <div class="stat"><div class="lbl">CO</div><div class="val" id="s-co" style="color:#639922">0</div></div>
+  <div class="stat"><div class="lbl">NO₃</div><div class="val" id="s-no3" style="color:#BA7517">0</div></div>
+  <div class="stat"><div class="lbl">NO</div><div class="val" id="s-no" style="color:#378ADD">0</div></div>
+  <div class="stat"><div class="lbl">CO₂</div><div class="val" id="s-co2" style="color:#0F6E56">0</div></div>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:#E24B4A;border-color:#A32D2D"></span>NO₂</span>
+  <span><span class="dot" style="background:#639922;border-color:#3B6D11"></span>CO</span>
+  <span><span class="dot" style="background:#BA7517;border-color:#854F0B;width:17px;height:17px"></span>NO₃ (tussenproduct)</span>
+  <span><span class="dot" style="background:#378ADD;border-color:#185FA5"></span>NO</span>
+  <span><span class="dot" style="background:#5DCAA5;border-color:#0F6E56;width:15px;height:15px"></span>CO₂</span>
+</div>
+
+<div class="section-label">Beginconcentratie (instellen vóór Start)</div>
+
+<div class="ctrl">
+  <label style="color:#A32D2D;font-weight:500">NO₂ moleculen</label>
+  <input type="range" id="sl-no2" min="4" max="24" value="10" step="1" style="accent-color:#E24B4A">
+  <span class="val-out" id="out-no2">10</span>
+</div>
+<div class="ctrl">
+  <label style="color:#3B6D11;font-weight:500">CO moleculen</label>
+  <input type="range" id="sl-co" min="4" max="24" value="10" step="1" style="accent-color:#639922">
+  <span class="val-out" id="out-co">10</span>
+</div>
+
+<div class="hint" id="hint">
+  Tip: verhoog CO maar houd NO₂ gelijk → reactiesnelheid verandert nauwelijks.<br>
+  Verhoog NO₂ → veel meer botsingen en reacties (v = k[NO₂]²).
+</div>
+
+<div class="section-label">Simulatie-instellingen</div>
+
+<div class="ctrl">
+  <label>Temperatuur</label>
+  <input type="range" id="sl-temp" min="1" max="10" value="4" step="1">
+  <span class="val-out" id="out-temp">medium</span>
+</div>
+
+<div class="btns">
+  <button onclick="startSim()">▶ Start</button>
+  <button onclick="togglePause()">⏸ Pauzeer</button>
+  <button onclick="resetSim()">↺ Reset</button>
+</div>
+
+<div id="log">Stel de concentraties in en klik Start.</div>
+
+<script>
+const canvas = document.getElementById('sim-canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const TYPES = {
+  NO2:{ label:'NO₂', r:13, color:'#E24B4A', border:'#A32D2D' },
+  CO: { label:'CO',  r:11, color:'#639922',  border:'#3B6D11' },
+  NO3:{ label:'NO₃', r:16, color:'#BA7517',  border:'#854F0B' },
+  NO: { label:'NO',  r:10, color:'#378ADD',  border:'#185FA5' },
+  CO2:{ label:'CO₂', r:14, color:'#5DCAA5',  border:'#0F6E56' },
+};
+
+let molecules=[], animId=null, paused=false, rxnCount=0, logLines=[];
+
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function getSpeed(){ return 0.6+parseInt(document.getElementById('sl-temp').value)*0.35; }
+
+function makeMolecule(type,x,y){
+  const t=TYPES[type], angle=Math.random()*Math.PI*2, spd=getSpeed();
+  return { type,
+    x: x!==undefined ? x : rnd(t.r+5,W-t.r-5),
+    y: y!==undefined ? y : rnd(t.r+5,H-t.r-5),
+    vx: Math.cos(angle)*spd,
+    vy: Math.sin(angle)*spd,
+    flash: 0 };
+}
+
+function resetSim(){
+  if(animId) cancelAnimationFrame(animId);
+  animId=null; paused=false; rxnCount=0; molecules=[]; logLines=[];
+  updateStats();
+  document.getElementById('log').textContent='Klik Start om te beginnen.';
+  drawBg();
+}
+
+function startSim(){
+  if(animId) cancelAnimationFrame(animId);
+  paused=false; rxnCount=0; logLines=[]; molecules=[];
+  const nNO2=parseInt(document.getElementById('sl-no2').value);
+  const nCO =parseInt(document.getElementById('sl-co').value);
+  for(let i=0;i<nNO2;i++) molecules.push(makeMolecule('NO2'));
+  for(let i=0;i<nCO;i++)  molecules.push(makeMolecule('CO'));
+  updateStats();
+  addLog('Start: '+nNO2+'× NO₂ en '+nCO+'× CO in het vat.');
+  updateHint(nNO2,nCO);
+  loop();
+}
+
+function togglePause(){
+  paused=!paused;
+  if(!paused&&!animId) loop();
+}
+
+function loop(){
+  if(paused){animId=null;return;}
+  update(); draw();
+  animId=requestAnimationFrame(loop);
+}
+
+function update(){
+  const spd=getSpeed();
+  molecules.forEach(m=>{
+    m.x+=m.vx; m.y+=m.vy;
+    const r=TYPES[m.type].r;
+    if(m.x<r+1){m.x=r+1;m.vx=Math.abs(m.vx);}
+    if(m.x>W-r-1){m.x=W-r-1;m.vx=-Math.abs(m.vx);}
+    if(m.y<r+1){m.y=r+1;m.vy=Math.abs(m.vy);}
+    if(m.y>H-r-1){m.y=H-r-1;m.vy=-Math.abs(m.vy);}
+    const cur=Math.hypot(m.vx,m.vy);
+    if(cur>0.01){m.vx=(m.vx/cur)*spd;m.vy=(m.vy/cur)*spd;}
+    if(m.flash>0) m.flash--;
+  });
+  checkCollisions();
+  updateStats();
+}
+
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+
+function checkCollisions(){
+  const toRemove=new Set();
+  for(let i=0;i<molecules.length;i++){
+    if(toRemove.has(i)) continue;
+    const a=molecules[i];
+    for(let j=i+1;j<molecules.length;j++){
+      if(toRemove.has(j)) continue;
+      const b=molecules[j];
+      const ra=TYPES[a.type].r, rb=TYPES[b.type].r;
+      if(dist(a,b)>=ra+rb+1) continue;
+      const pair=[a.type,b.type].sort().join('+');
+
+      if(pair==='NO2+NO2'){
+        toRemove.add(i); toRemove.add(j);
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+        const no3=makeMolecule('NO3',mx,my); no3.flash=25;
+        const no=makeMolecule('NO',mx+rnd(-22,22),my+rnd(-22,22)); no.flash=25;
+        molecules.push(no3,no); rxnCount++;
+        addLog('Stap 1: NO₂+NO₂ → NO₃+NO  (snelheidsbepalend)');
+        break;
+      }
+      if(pair==='CO+NO3'){
+        toRemove.add(i); toRemove.add(j);
+        const no3m=a.type==='NO3'?a:b;
+        const no2=makeMolecule('NO2',no3m.x+rnd(-16,16),no3m.y+rnd(-16,16)); no2.flash=25;
+        const co2=makeMolecule('CO2',no3m.x+rnd(-16,16),no3m.y+rnd(-16,16)); co2.flash=25;
+        molecules.push(no2,co2); rxnCount++;
+        addLog('Stap 2: NO₃+CO → NO₂+CO₂  (zuurstofoverdracht)');
+        break;
+      }
+      const spd2=getSpeed();
+      const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
+      const nx=dx/d, ny=dy/d;
+      a.vx-=nx*spd2*0.4; a.vy-=ny*spd2*0.4;
+      b.vx+=nx*spd2*0.4; b.vy+=ny*spd2*0.4;
+    }
+    if(toRemove.has(i)) break;
+  }
+  molecules=molecules.filter((_,i)=>!toRemove.has(i));
+}
+
+function drawBg(){
+  ctx.fillStyle='#eeecea';
+  ctx.fillRect(0,0,W,H);
+}
+
+function draw(){
+  drawBg();
+  molecules.forEach(m=>{
+    const t=TYPES[m.type];
+    ctx.save();
+    if(m.flash>0){ctx.shadowColor=t.color;ctx.shadowBlur=14;}
+    ctx.beginPath();ctx.arc(m.x,m.y,t.r,0,Math.PI*2);
+    ctx.fillStyle=t.color;ctx.fill();
+    ctx.strokeStyle=t.border;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle='#fff';
+    ctx.font='500 '+(Math.max(9,t.r-3))+'px system-ui,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(t.label,m.x,m.y);
+  });
+}
+
+function updateStats(){
+  const cnt=t=>molecules.filter(m=>m.type===t).length;
+  document.getElementById('s-no2').textContent=cnt('NO2');
+  document.getElementById('s-co').textContent=cnt('CO');
+  document.getElementById('s-no3').textContent=cnt('NO3');
+  document.getElementById('s-no').textContent=cnt('NO');
+  document.getElementById('s-co2').textContent=cnt('CO2');
+}
+
+function addLog(msg){
+  logLines.unshift(msg);
+  if(logLines.length>3) logLines.pop();
+  document.getElementById('log').innerHTML=logLines.join('<br>');
+}
+
+function updateHint(nNO2,nCO){
+  const el=document.getElementById('hint');
+  if(nCO>nNO2*1.5)
+    el.innerHTML='<strong>CO is veel hoger dan NO₂</strong> — let op: de reactiesnelheid hangt enkel af van [NO₂]². CO heeft geen invloed op de snelheid!';
+  else if(nNO2>nCO*1.5)
+    el.innerHTML='<strong>NO₂ is veel hoger</strong> — verwacht veel meer botsingen en een hogere reactiesnelheid. v = k[NO₂]² → verdubbel NO₂ = 4× sneller.';
+  else
+    el.innerHTML='Tip: verhoog CO maar houd NO₂ gelijk → reactiesnelheid verandert nauwelijks.<br>Verhoog NO₂ → veel meer botsingen en reacties (v = k[NO₂]²).';
+}
+
+const tempLabels=['','zeer traag','traag','medium-traag','medium','medium-snel','snel','vrij snel','zeer snel','ultra snel','maximaal'];
+
+document.getElementById('sl-temp').addEventListener('input',function(){
+  document.getElementById('out-temp').textContent=tempLabels[this.value]||this.value;
+  const spd=getSpeed();
+  molecules.forEach(m=>{const cur=Math.hypot(m.vx,m.vy);if(cur>0.01){m.vx=(m.vx/cur)*spd;m.vy=(m.vy/cur)*spd;}});
+});
+document.getElementById('sl-no2').addEventListener('input',function(){
+  document.getElementById('out-no2').textContent=this.value;
+  updateHint(parseInt(this.value),parseInt(document.getElementById('sl-co').value));
+});
+document.getElementById('sl-co').addEventListener('input',function(){
+  document.getElementById('out-co').textContent=this.value;
+  updateHint(parseInt(document.getElementById('sl-no2').value),parseInt(this.value));
+});
+
+drawBg();
+updateStats();
+</script>
+</body>
+</html>
