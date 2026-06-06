@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgCl Neerslagreactie</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 1rem; font-family: sans-serif; background: #f0f4f8; }
+  #sim-wrap { max-width: 700px; margin: 0 auto; }
+  h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; color: #1a202c; }
+  .subtitle { font-size: 12px; color: #666; margin: 0 0 0.6rem; }
+  canvas { display: block; border-radius: 12px; border: 1px solid #cbd5e0; background: #0d1b2e; margin: 0 auto; width: 100%; max-width: 680px; }
+  .controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+  .btns { display: flex; gap: 8px; }
+  .btn { padding: 6px 14px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .btn:hover { background: #edf2f7; }
+  .btn.active { background: #ebf8ff; color: #2b6cb0; border-color: #90cdf4; }
+  .slider-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
+  .slider-row label { font-size: 12px; color: #555; white-space: nowrap; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row span { font-size: 12px; font-weight: 600; min-width: 28px; color: #333; }
+  .legend { display: flex; gap: 10px; margin: 6px 0; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #444; }
+  .leg-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+  .leg-rect { width: 14px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+  .stats { display: flex; gap: 16px; margin: 6px 0; flex-wrap: wrap; }
+  .stat { font-size: 12px; color: #555; }
+  .stat span { font-weight: 600; color: #1a202c; }
+  .reaction-eq { font-size: 12px; color: #666; margin: 2px 0 6px; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="sim-wrap">
+  <h2>Neerslagreactie: AgNO₃ + NaCl → AgCl↓ + NaNO₃</h2>
+  <p class="reaction-eq">Ag⁺(aq) + Cl⁻(aq) → AgCl(s)</p>
+  <canvas id="c" width="680" height="480"></canvas>
+
+  <div class="controls">
+    <div class="btns">
+      <button class="btn active" id="btn-play" onclick="togglePlay()">
+        <i class="ti ti-player-play"></i> Start
+      </button>
+      <button class="btn" id="btn-reset" onclick="resetSim()">
+        <i class="ti ti-refresh"></i> Reset
+      </button>
+    </div>
+    <div class="slider-row">
+      <label>Temperatuur (°C)</label>
+      <input type="range" min="10" max="90" step="1" value="25" id="temp-slider"
+        oninput="document.getElementById('temp-val').textContent=this.value; temperature=+this.value">
+      <span id="temp-val">25</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#4fc3f7"></div> H₂O</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ef9a9a"></div> Na⁺ (rooster)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ce93d8"></div> Cl⁻ (rooster)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ffd54f"></div> Ag⁺ (rooster)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#a5d6a7"></div> NO₃⁻ (rooster)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ff5252"></div> Na⁺ (aq)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ea80fc"></div> Cl⁻ (aq)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#ffca28"></div> Ag⁺ (aq)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#69f0ae"></div> NO₃⁻ (aq)</div>
+    <div class="leg-item"><div class="leg-rect" style="background:#b0bec5"></div> AgCl↓ (neerslag)</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">NaCl opgelost: <span id="s-nacl">0</span> / <span id="s-nacl-tot">0</span></div>
+    <div class="stat">AgNO₃ opgelost: <span id="s-agno3">0</span> / <span id="s-agno3-tot">0</span></div>
+    <div class="stat">AgCl neerslag: <span id="s-agcl">0</span> deeltjes</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 680, H = 480;
+
+let playing = false;
+let animId = null;
+let lastTime = 0;
+let temperature = 25;
+
+// Particle radii
+const R_WATER = 9;
+const R_NA = 10, R_CL = 12, R_AG = 13, R_NO3 = 11;
+const R_AGCL = 14; // precipitate particle
+
+const SDIST_NA = 23, SDIST_CL = 26, SDIST_AG = 25, SDIST_NO3 = 24;
+const WATER_PER_ION = 5;
+const CELL = 34;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let ions = [];
+let waterMols = [];
+let precipitate = []; // AgCl particles sinking to bottom
+
+// ── Spatial hash ──────────────────────────────────────────────────────────────
+// Cell size based on the largest particle so all relevant pairs are found
+const CELL_SIZE = (R_AGCL + R_WATER) * 2 + 2;
+function buildSpatialGrid(particles) {
+  const grid = new Map();
+  const key = (cx, cy) => `${cx},${cy}`;
+  for (const p of particles) {
+    const cx = Math.floor(p.x / CELL_SIZE);
+    const cy = Math.floor(p.y / CELL_SIZE);
+    const k = key(cx, cy);
+    if (!grid.has(k)) grid.set(k, []);
+    grid.get(k).push(p);
+  }
+  return { grid, key };
+}
+function getNeighborCandidates(sg, p) {
+  const cx = Math.floor(p.x / CELL_SIZE);
+  const cy = Math.floor(p.y / CELL_SIZE);
+  const result = [];
+  for (let dx = -1; dx <= 1; dx++)
+    for (let dy = -1; dy <= 1; dy++) {
+      const k = sg.key(cx+dx, cy+dy);
+      if (sg.grid.has(k)) result.push(...sg.grid.get(k));
+    }
+  return result;
+}
+
+// ── Grid builders ─────────────────────────────────────────────────────────────
+function buildNaClGrid(ox, oy, cols, rows) {
+  const result = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const type = (r + c) % 2 === 0 ? 'Na' : 'Cl';
+      result.push({
+        col: c, row: r, gridId: 'NaCl',
+        x: ox + c * CELL + CELL / 2,
+        y: oy + r * CELL + CELL / 2,
+        type, state: 'grid',
+        vx: 0, vy: 0,
+        waterAttached: [], solvationCount: 0,
+        r: type === 'Na' ? R_NA : R_CL
+      });
+    }
+  }
+  return result;
+}
+
+function buildAgNO3Grid(ox, oy, cols, rows) {
+  const result = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const type = (r + c) % 2 === 0 ? 'Ag' : 'NO3';
+      result.push({
+        col: c, row: r, gridId: 'AgNO3',
+        x: ox + c * CELL + CELL / 2,
+        y: oy + r * CELL + CELL / 2,
+        type, state: 'grid',
+        vx: 0, vy: 0,
+        waterAttached: [], solvationCount: 0,
+        r: type === 'Ag' ? R_AG : R_NO3
+      });
+    }
+  }
+  return result;
+}
+
+function ionRadius(type) {
+  return { Na: R_NA, Cl: R_CL, Ag: R_AG, NO3: R_NO3 }[type] || 10;
+}
+function solvDist(type) {
+  return { Na: SDIST_NA, Cl: SDIST_CL, Ag: SDIST_AG, NO3: SDIST_NO3 }[type] || 24;
+}
+
+// ── Water builder ─────────────────────────────────────────────────────────────
+function buildWater() {
+  waterMols = [];
+  const allGridRects = [
+    { x1: 30, y1: 40, x2: 30 + 4*CELL + 12, y2: 40 + 4*CELL + 12 },
+    { x1: W - 30 - 4*CELL - 12, y1: 40, x2: W - 30, y2: 40 + 4*CELL + 12 }
+  ];
+  const needed = ions.length * WATER_PER_ION + 80;
+  let tries = 0;
+  while (waterMols.length < needed && tries < needed * 50) {
+    tries++;
+    const x = 14 + Math.random() * (W - 28);
+    const y = 14 + Math.random() * (H - 28);
+    let inGrid = false;
+    for (const g of allGridRects) {
+      if (x > g.x1 - 10 && x < g.x2 + 10 && y > g.y1 - 10 && y < g.y2 + 10) { inGrid = true; break; }
+    }
+    if (inGrid) continue;
+    let ok = true;
+    for (const w of waterMols) {
+      if (Math.hypot(w.x - x, w.y - y) < R_WATER * 2.4) { ok = false; break; }
+    }
+    if (!ok) continue;
+    const a = Math.random() * Math.PI * 2;
+    waterMols.push({
+      x, y,
+      vx: Math.cos(a) * (0.5 + Math.random() * 0.7),
+      vy: Math.sin(a) * (0.5 + Math.random() * 0.7),
+      rot: Math.random() * Math.PI * 2,
+      vrot: (Math.random() - 0.5) * 0.06,
+      r: R_WATER,
+      state: 'free', boundIon: null, attachAngle: 0, attachDist: 0
+    });
+  }
+}
+
+function resetSim() {
+  if (animId) cancelAnimationFrame(animId);
+  playing = false;
+  precipitate = [];
+  const btn = document.getElementById('btn-play');
+  btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
+  btn.classList.add('active');
+
+  // NaCl grid: left side
+  const naclCols = 5, naclRows = 5;
+  const naclOx = 30, naclOy = 40;
+  // AgNO3 grid: right side
+  const agno3Cols = 5, agno3Rows = 5;
+  const agno3Ox = W - 30 - agno3Cols * CELL, agno3Oy = 40;
+
+  ions = [
+    ...buildNaClGrid(naclOx, naclOy, naclCols, naclRows),
+    ...buildAgNO3Grid(agno3Ox, agno3Oy, agno3Cols, agno3Rows)
+  ];
+
+  buildWater();
+  updateStats();
+  draw();
+}
+
+function togglePlay() {
+  playing = !playing;
+  const btn = document.getElementById('btn-play');
+  if (playing) {
+    btn.innerHTML = '<i class="ti ti-player-pause"></i> Pauze';
+    btn.classList.remove('active');
+    lastTime = performance.now();
+    animId = requestAnimationFrame(loop);
+  } else {
+    btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
+    btn.classList.add('active');
+    cancelAnimationFrame(animId);
+  }
+}
+
+function updateStats() {
+  const nacl = ions.filter(i => i.gridId === 'NaCl');
+  const agno3 = ions.filter(i => i.gridId === 'AgNO3');
+  const naclFree = nacl.filter(i => i.state === 'free').length;
+  const agno3Free = agno3.filter(i => i.state === 'free').length;
+  document.getElementById('s-nacl').textContent = Math.floor(naclFree / 2);
+  document.getElementById('s-nacl-tot').textContent = Math.floor(nacl.length / 2);
+  document.getElementById('s-agno3').textContent = Math.floor(agno3Free / 2);
+  document.getElementById('s-agno3-tot').textContent = Math.floor(agno3.length / 2);
+  document.getElementById('s-agcl').textContent = precipitate.length;
+}
+
+// ── Grid edge helpers ─────────────────────────────────────────────────────────
+function isEdgeIon(ion) {
+  const g = ions.filter(i => i.state === 'grid' && i.gridId === ion.gridId);
+  if (!g.length) return true;
+  const cols = g.map(i => i.col), rows = g.map(i => i.row);
+  return ion.col === Math.min(...cols) || ion.col === Math.max(...cols) ||
+         ion.row === Math.min(...rows) || ion.row === Math.max(...rows);
+}
+function getNeighborBonds(ion) {
+  return ions.filter(o => o.state === 'grid' && o.gridId === ion.gridId &&
+    Math.abs(o.col - ion.col) + Math.abs(o.row - ion.row) === 1).length;
+}
+
+// ── Collision helpers ─────────────────────────────────────────────────────────
+function randV(s) { return (Math.random() - 0.5) * 2 * s; }
+
+function resolveCircleCollision(a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const dist = Math.hypot(dx, dy);
+  const minD = a.r + b.r;
+  if (dist >= minD || dist < 0.001) return;
+  const nx = dx/dist, ny = dy/dist;
+  const ov = (minD - dist) * 0.5;
+  a.x -= nx * ov; a.y -= ny * ov;
+  b.x += nx * ov; b.y += ny * ov;
+  const dvx = a.vx - b.vx, dvy = a.vy - b.vy;
+  const dot = dvx*nx + dvy*ny;
+  if (dot > 0) {
+    const imp = dot * 0.85;
+    a.vx -= imp * nx; a.vy -= imp * ny;
+    b.vx += imp * nx; b.vy += imp * ny;
+  }
+}
+
+function resolveWaterIon(w, ion) {
+  const dx = w.x - ion.x, dy = w.y - ion.y;
+  const dist = Math.hypot(dx, dy);
+  const minD = w.r + ion.r;
+  if (dist >= minD || dist < 0.001) return false;
+  const nx = dx/dist, ny = dy/dist;
+  const ov = minD - dist;
+  w.x += nx * ov; w.y += ny * ov;
+  const dot = w.vx*nx + w.vy*ny;
+  if (dot < 0) {
+    w.vx -= 2 * dot * nx * 0.8;
+    w.vy -= 2 * dot * ny * 0.8;
+    return true;
+  }
+  return false;
+}
+
+function angleDiff(a, b) {
+  return ((b - a) % (Math.PI*2) + Math.PI*3) % (Math.PI*2) - Math.PI;
+}
+function targetRot(aa, type) {
+  // Na+, Ag+ → O faces ion (lone pair toward positive)
+  // Cl-, NO3- → H faces ion
+  return (type === 'Na' || type === 'Ag') ? aa + Math.PI : aa;
+}
+
+function applyBrownian(p, rawDt, scale) {
+  const T = temperature / 25;
+  p.vx += randV(T * 0.16 * scale) * rawDt;
+  p.vy += randV(T * 0.16 * scale) * rawDt;
+  const maxV = (1.0 + T * 1.0) * scale;
+  const v = Math.hypot(p.vx, p.vy);
+  if (v > maxV) { p.vx *= maxV/v; p.vy *= maxV/v; }
+}
+
+// ── Precipitation ─────────────────────────────────────────────────────────────
+function formPrecipitate(agIon, clIon) {
+  // detach all water from both ions
+  [...agIon.waterAttached, ...clIon.waterAttached].forEach(w => {
+    w.state = 'free';
+    w.boundIon = null;
+    w.vx = randV(0.8); w.vy = randV(0.8);
+  });
+  agIon.waterAttached = []; clIon.waterAttached = [];
+
+  const px = (agIon.x + clIon.x) / 2;
+  const py = (agIon.y + clIon.y) / 2;
+
+  precipitate.push({
+    x: px, y: py,
+    vx: randV(0.2), vy: -0.1,
+    r: R_AGCL,
+    sinking: true,
+    alpha: 1
+  });
+
+  // remove both ions from simulation
+  ions = ions.filter(i => i !== agIon && i !== clIon);
+  updateStats();
+}
+
+// ── Main loop ─────────────────────────────────────────────────────────────────
+function loop(ts) {
+  const rawDt = Math.min((ts - lastTime) / 16.67, 3);
+  lastTime = ts;
+  const speedFactor = temperature / 10;
+  const dt = rawDt * (speedFactor * 0.6 + 0.4);
+
+  // 1. Move free water
+  waterMols.forEach(w => {
+    if (w.state !== 'free') return;
+    applyBrownian(w, rawDt, 1);
+    w.x += w.vx * dt;
+    w.y += w.vy * dt;
+    w.rot += w.vrot * dt;
+    if (w.x < w.r)     { w.x = w.r;     w.vx =  Math.abs(w.vx); }
+    if (w.x > W - w.r) { w.x = W - w.r; w.vx = -Math.abs(w.vx); }
+    if (w.y < w.r)     { w.y = w.r;     w.vy =  Math.abs(w.vy); }
+    if (w.y > H - w.r) { w.y = H - w.r; w.vy = -Math.abs(w.vy); }
+  });
+
+  // 2. Water-water collisions — ALL water molecules (free + bound) collide with each other.
+  //    Bound water can be nudged by free water; only free water velocity is truly updated.
+  //    Bound water position correction is allowed so free molecules don't phase through them.
+  const allWater = waterMols; // free + bound
+  const sgW = buildSpatialGrid(allWater);
+  const checked = new Set();
+  for (const w of allWater) {
+    for (const other of getNeighborCandidates(sgW, w)) {
+      if (other === w) continue;
+      const ia = waterMols.indexOf(w), ib = waterMols.indexOf(other);
+      const pk = ia < ib ? `${ia}_${ib}` : `${ib}_${ia}`;
+      if (checked.has(pk)) continue;
+      checked.add(pk);
+      // Both free: full elastic collision
+      if (w.state === 'free' && other.state === 'free') {
+        resolveCircleCollision(w, other);
+      } else {
+        // At least one is bound: only push the free one away, bound stays in orbit
+        const dx = w.x - other.x, dy = w.y - other.y;
+        const dist = Math.hypot(dx, dy);
+        const minD = w.r + other.r;
+        if (dist < minD && dist > 0.001) {
+          const nx = dx/dist, ny = dy/dist;
+          const ov = minD - dist;
+          if (w.state === 'free') {
+            w.x += nx * ov; w.y += ny * ov;
+            const dot = w.vx*nx + w.vy*ny;
+            if (dot < 0) { w.vx -= dot*nx*1.6; w.vy -= dot*ny*1.6; }
+          } else {
+            other.x -= nx * ov; other.y -= ny * ov;
+            const dot = other.vx*nx + other.vy*ny;
+            if (dot > 0) { other.vx -= dot*nx*1.6; other.vy -= dot*ny*1.6; }
+          }
+        }
+      }
+    }
+  }
+
+  // 2b. Water/ion collisions with precipitate (AgCl acts as a solid obstacle)
+  precipitate.forEach(p => {
+    // collide with all free water
+    waterMols.forEach(w => {
+      if (w.state !== 'free') return;
+      const dx = w.x - p.x, dy = w.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      const minD = w.r + p.r;
+      if (dist < minD && dist > 0.001) {
+        const nx = dx/dist, ny = dy/dist;
+        w.x += nx * (minD - dist);
+        w.y += ny * (minD - dist);
+        // transfer a little momentum to the precipitate (heavy, moves little)
+        const dot = w.vx*nx + w.vy*ny;
+        if (dot < 0) {
+          w.vx -= dot * nx * 1.5;
+          w.vy -= dot * ny * 1.5;
+          p.vx += dot * nx * 0.04;
+          p.vy += dot * ny * 0.04;
+        }
+      }
+    });
+    // collide with free ions
+    ions.filter(i => i.state === 'free').forEach(ion => {
+      const dx = ion.x - p.x, dy = ion.y - p.y;
+      const dist = Math.hypot(dx, dy);
+      const minD = ion.r + p.r;
+      if (dist < minD && dist > 0.001) {
+        const nx = dx/dist, ny = dy/dist;
+        ion.x += nx * (minD - dist);
+        ion.y += ny * (minD - dist);
+        const dot = ion.vx*nx + ion.vy*ny;
+        if (dot < 0) {
+          ion.vx -= dot * nx * 1.4;
+          ion.vy -= dot * ny * 1.4;
+          p.vx += dot * nx * 0.06;
+          p.vy += dot * ny * 0.06;
+        }
+      }
+    });
+  });
+
+  const freeWater = waterMols.filter(w => w.state === 'free'); // used later in step 3
+
+  // 3. Water-ion interactions (dissolution)
+  freeWater.forEach(w => {
+    ions.forEach(ion => {
+      if (ion.state !== 'grid' && ion.state !== 'free') return;
+      const dx = w.x - ion.x, dy = w.y - ion.y;
+      if (Math.abs(dx) > 80 || Math.abs(dy) > 80) return;
+      const dist = Math.hypot(dx, dy);
+      const sd = solvDist(ion.type);
+
+      if (dist < sd * 2.5 && ion.state === 'grid' &&
+          isEdgeIon(ion) && ion.solvationCount < WATER_PER_ION) {
+        const attract = 0.003 * speedFactor * rawDt;
+        w.vx += ((ion.x - w.x) / dist) * attract;
+        w.vy += ((ion.y - w.y) / dist) * attract;
+      }
+
+      const collided = resolveWaterIon(w, ion);
+      if (collided && ion.state === 'grid' && isEdgeIon(ion) &&
+          ion.solvationCount < WATER_PER_ION) {
+        const bonds = getNeighborBonds(ion);
+        const prob = (speedFactor) * 0.014 * (5 - bonds * 0.5);
+        if (Math.random() < prob) {
+          const aa = Math.atan2(w.y - ion.y, w.x - ion.x);
+          w.state = 'bound';
+          w.boundIon = ion;
+          w.attachAngle = aa;
+          w.attachDist = sd;
+          ion.waterAttached.push(w);
+          ion.solvationCount++;
+          if (ion.solvationCount >= WATER_PER_ION) {
+            ion.state = 'free';
+            ion.vx = randV(0.3); ion.vy = randV(0.3);
+            ion.waterAttached.forEach((bw, i) => {
+              bw.attachAngle = (i / ion.waterAttached.length) * Math.PI * 2;
+              bw.attachDist = sd;
+            });
+            updateStats();
+          }
+        }
+      }
+    });
+  });
+
+  // 4. Bound water orbit
+  waterMols.forEach(w => {
+    if (w.state !== 'bound' || !w.boundIon) return;
+    const ion = w.boundIon;
+    w.attachAngle += 0.003 * speedFactor * rawDt;
+    const tx = ion.x + Math.cos(w.attachAngle) * w.attachDist;
+    const ty = ion.y + Math.sin(w.attachAngle) * w.attachDist;
+    w.x += (tx - w.x) * 0.14;
+    w.y += (ty - w.y) * 0.14;
+    const tr = targetRot(w.attachAngle, ion.type);
+    w.rot += angleDiff(w.rot, tr) * 0.15;
+  });
+
+  // 5. Move free ions
+  ions.filter(i => i.state === 'free').forEach(ion => {
+    applyBrownian(ion, rawDt, 0.28);
+    ion.x += ion.vx * dt * 0.38;
+    ion.y += ion.vy * dt * 0.38;
+    const ir = ion.r;
+    if (ion.x < ir)     { ion.x = ir;     ion.vx =  Math.abs(ion.vx); }
+    if (ion.x > W - ir) { ion.x = W - ir; ion.vx = -Math.abs(ion.vx); }
+    if (ion.y < ir)     { ion.y = ir;     ion.vy =  Math.abs(ion.vy); }
+    if (ion.y > H - ir) { ion.y = H - ir; ion.vy = -Math.abs(ion.vy); }
+  });
+
+  // 6. Precipitation: check Ag+ vs Cl- collisions
+  const freeAg = ions.filter(i => i.type === 'Ag' && i.state === 'free');
+  const freeCl = ions.filter(i => i.type === 'Cl' && i.state === 'free');
+  outer:
+  for (const ag of freeAg) {
+    for (const cl of freeCl) {
+      const dist = Math.hypot(ag.x - cl.x, ag.y - cl.y);
+      // Ag+ and Cl- react when close enough (within their radii + small reaction radius)
+      if (dist < ag.r + cl.r + 6) {
+        formPrecipitate(ag, cl);
+        break outer; // avoid processing removed ions
+      }
+    }
+  }
+
+  // 7. Move precipitate particles (sink to bottom)
+  precipitate.forEach(p => {
+    p.vy += 0.04 * rawDt; // gravity
+    p.vx *= 0.98;
+    p.vy *= 0.99;
+    p.x += p.vx * rawDt;
+    p.y += p.vy * rawDt;
+    // floor
+    if (p.y > H - p.r - 4) {
+      p.y = H - p.r - 4;
+      p.vy *= -0.15;
+      p.vx *= 0.85;
+    }
+    // walls
+    if (p.x < p.r)     { p.x = p.r;     p.vx =  Math.abs(p.vx); }
+    if (p.x > W - p.r) { p.x = W - p.r; p.vx = -Math.abs(p.vx); }
+    // stack on other precipitate particles
+    precipitate.forEach(other => {
+      if (other === p) return;
+      const dx = p.x - other.x, dy = p.y - other.y;
+      const dist = Math.hypot(dx, dy);
+      const minD = p.r + other.r;
+      if (dist < minD && dist > 0.001) {
+        const nx = dx/dist, ny = dy/dist;
+        const ov = (minD - dist) * 0.5;
+        p.x += nx * ov; p.y += ny * ov;
+        other.x -= nx * ov; other.y -= ny * ov;
+        const dot = (p.vx - other.vx)*nx + (p.vy - other.vy)*ny;
+        if (dot < 0) {
+          p.vx -= dot*nx*0.3; p.vy -= dot*ny*0.3;
+          other.vx += dot*nx*0.3; other.vy += dot*ny*0.3;
+        }
+      }
+    });
+  });
+
+  draw();
+  if (playing) animId = requestAnimationFrame(loop);
+}
+
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function ionColor(type, state) {
+  const palette = {
+    Na: { grid: '#ef9a9a', free: '#ff5252' },
+    Cl: { grid: '#ce93d8', free: '#ea80fc' },
+    Ag: { grid: '#ffd54f', free: '#ffca28' },
+    NO3: { grid: '#a5d6a7', free: '#69f0ae' }
+  };
+  return palette[type]?.[state === 'free' ? 'free' : 'grid'] || '#ccc';
+}
+function ionLabel(type) {
+  return { Na: 'Na⁺', Cl: 'Cl⁻', Ag: 'Ag⁺', NO3: 'NO₃⁻' }[type] || type;
+}
+
+function drawWaterMol(x, y, rot, r) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#4fc3f7';
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#ef5350';
+  const hd = r * 0.78, hr = r * 0.43, sp = Math.PI / 6;
+  [Math.PI - sp, Math.PI + sp].forEach(ha => {
+    ctx.beginPath();
+    ctx.arc(Math.cos(ha)*hd, Math.sin(ha)*hd, hr, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.font = `bold ${Math.round(r*0.66)}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('O', 0, 0);
+  ctx.restore();
+}
+
+function drawIon(ion) {
+  const col = ionColor(ion.type, ion.state);
+  ctx.save();
+  if (ion.state === 'free') { ctx.shadowBlur = 12; ctx.shadowColor = col; }
+  ctx.beginPath(); ctx.arc(ion.x, ion.y, ion.r, 0, Math.PI*2);
+  ctx.fillStyle = col; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${ion.r < 12 ? 8 : 9}px sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(ionLabel(ion.type), ion.x, ion.y);
+  ctx.restore();
+}
+
+function drawPrecipitate(p) {
+  ctx.save();
+  // White/grey crystalline appearance for AgCl
+  const gradient = ctx.createRadialGradient(p.x - p.r*0.3, p.y - p.r*0.3, 1, p.x, p.y, p.r);
+  gradient.addColorStop(0, '#eceff1');
+  gradient.addColorStop(0.5, '#b0bec5');
+  gradient.addColorStop(1, '#78909c');
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = 'rgba(176,190,197,0.5)';
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+  ctx.fillStyle = gradient; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#37474f';
+  ctx.font = 'bold 7px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('AgCl', p.x, p.y);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0d1b2e';
+  ctx.fillRect(0, 0, W, H);
+
+  // Bottom "floor" tint to indicate sedimentation zone
+  const floorGrad = ctx.createLinearGradient(0, H - 50, 0, H);
+  floorGrad.addColorStop(0, 'rgba(120,144,156,0)');
+  floorGrad.addColorStop(1, 'rgba(120,144,156,0.08)');
+  ctx.fillStyle = floorGrad;
+  ctx.fillRect(0, H - 50, W, 50);
+
+  // Grid lattice bonds for remaining grid ions
+  ['NaCl', 'AgNO3'].forEach(gridId => {
+    const g = ions.filter(i => i.state === 'grid' && i.gridId === gridId);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    g.forEach(ion => {
+      g.filter(o => Math.abs(o.col - ion.col) + Math.abs(o.row - ion.row) === 1)
+       .forEach(n => { ctx.beginPath(); ctx.moveTo(ion.x, ion.y); ctx.lineTo(n.x, n.y); ctx.stroke(); });
+    });
+  });
+
+  // Grid labels
+  const naclIons = ions.filter(i => i.gridId === 'NaCl' && i.state === 'grid');
+  const agno3Ions = ions.filter(i => i.gridId === 'AgNO3' && i.state === 'grid');
+  if (naclIons.length > 0) {
+    const xs = naclIons.map(i => i.x), ys = naclIons.map(i => i.y);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const ty = Math.min(...ys) - 18;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('NaCl', cx, ty);
+  }
+  if (agno3Ions.length > 0) {
+    const xs = agno3Ions.map(i => i.x), ys = agno3Ions.map(i => i.y);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const ty = Math.min(...ys) - 18;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('AgNO₃', cx, ty);
+  }
+
+  // Water molecules
+  waterMols.forEach(w => drawWaterMol(w.x, w.y, w.rot, w.r));
+
+  // Ions
+  ions.forEach(ion => drawIon(ion));
+
+  // Precipitate
+  precipitate.forEach(p => drawPrecipitate(p));
+
+  // "neerslag" label if any precipitate
+  if (precipitate.length > 0) {
+    ctx.fillStyle = 'rgba(176,190,197,0.55)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('↓ AgCl neerslag', 10, H - 14);
+  }
+}
+
+resetSim();
+</script>
+</body>
+</html>
