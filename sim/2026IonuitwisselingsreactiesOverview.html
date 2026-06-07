@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ionenreacties — Oplosbaarheidstabel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --accent: #7ee8a2;
+    --accent2: #38bdf8;
+    --amber: #fbbf24;
+    --coral: #f87171;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2.5rem 1.5rem;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  h1 {
+    font-family: var(--font-head);
+    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: #fff;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  /* STATS */
+  .stats {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .stat {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background: var(--bg2);
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: none;
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+
+  .stat:hover { background: var(--bg3); }
+  .stat.active { background: var(--bg3); }
+  .stat.active[data-type="all"] { box-shadow: inset 0 -2px 0 var(--accent); }
+  .stat.active[data-type="neerslag"] { box-shadow: inset 0 -2px 0 var(--accent2); }
+  .stat.active[data-type="gas"] { box-shadow: inset 0 -2px 0 var(--amber); }
+  .stat.active[data-type="neutralisatie"] { box-shadow: inset 0 -2px 0 var(--coral); }
+
+  .stat-num {
+    font-size: 1.4rem;
+    font-weight: 500;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+  }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  .result-count {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .btn-export {
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 0.5rem 0.9rem;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* MAIN */
+  main { padding: 0 2.5rem 3rem; }
+
+  /* TABLE */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 1.25rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  thead th {
+    background: var(--bg2);
+    padding: 0.65rem 1rem;
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg2); }
+
+  td {
+    padding: 0.7rem 1rem;
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .col-s1 { width: 9%; }
+  .col-s2 { width: 10%; }
+  .col-type { width: 9%; }
+  .col-stof { width: 40%; }
+  .col-netto { width: 32%; }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .badge-neerslag { background: rgba(56,189,248,0.12); color: var(--accent2); border: 1px solid rgba(56,189,248,0.2); }
+  .badge-gas { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-neutralisatie { background: rgba(126,232,162,0.12); color: var(--accent); border: 1px solid rgba(126,232,162,0.2); }
+
+  .formula { color: var(--text); }
+  .formula .ppt { color: var(--accent2); font-style: italic; }
+  .formula .gas-product { color: var(--amber); font-style: italic; }
+
+  /* PAGINATION */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+  }
+
+  .btn-page {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 0.4rem 0.9rem;
+    transition: all 0.15s;
+  }
+
+  .btn-page:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-page:disabled { opacity: 0.3; cursor: default; }
+
+  .page-label { color: var(--muted); font-size: 12px; padding: 0 0.5rem; }
+
+  /* EMPTY */
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 1.25rem 2.5rem;
+    color: var(--muted);
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 700px) {
+    header { padding: 1rem; }
+    main { padding: 0 1rem 2rem; }
+    footer { padding: 1rem; }
+    .col-netto { display: none; }
+    .col-stof { width: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Ionen<span>reacties</span></h1>
+      <p class="subtitle">Reactievergelijkingen voor de 2de graad · Secundair onderwijs chemie</p>
+    </div>
+    <div class="stats" id="stats">
+      <button class="stat active" data-type="all">
+        <div class="stat-num" id="s-total">—</div>
+        <div class="stat-label">Totaal</div>
+      </button>
+      <button class="stat" data-type="neerslag">
+        <div class="stat-num" id="s-neerslag">—</div>
+        <div class="stat-label">Neerslag</div>
+      </button>
+      <button class="stat" data-type="gas">
+        <div class="stat-num" id="s-gas">—</div>
+        <div class="stat-label">Gas</div>
+      </button>
+      <button class="stat" data-type="neutralisatie">
+        <div class="stat-num" id="s-neutr">—</div>
+        <div class="stat-label">Neutralisatie</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="search-wrap">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="filter-text" placeholder="Zoek op stof, bv. AgNO₃ of Cl…" />
+    </div>
+    <span class="result-count" id="result-count"></span>
+    <button class="btn-export" onclick="exportCSV()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV exporteren
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col class="col-s1"><col class="col-s2"><col class="col-type">
+        <col class="col-stof"><col class="col-netto">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Stof 1</th>
+          <th>Stof 2</th>
+          <th>Type</th>
+          <th>Stofvergelijking</th>
+          <th>Netto ionenvergelijking</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <button class="btn-page" id="btn-prev" onclick="paginaVeranderen(-1)">← Vorige</button>
+    <span class="page-label" id="page-label"></span>
+    <button class="btn-page" id="btn-next" onclick="paginaVeranderen(1)">Volgende →</button>
+  </div>
+</main>
+
+<footer>
+  <span>63 goed oplosbare stoffen · 1953 mogelijke combinaties</span>
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:var(--accent2)"></div><span>Neerslag (↓)</span></div>
+    <div class="legend-item"><div class="dot" style="background:var(--amber)"></div><span>Gasvorming (↑)</span></div>
+    <div class="legend-item"><div class="dot" style="background:var(--accent)"></div><span>Neutralisatie</span></div>
+  </div>
+</footer>
+
+<script>
+function grootstGemeenschappelijkeDeler(a,b){
+    return b===0?a:grootstGemeenschappelijkeDeler(b,a%b);
+}
+
+function kleinstGemeenschappelijkProduct(a,b){
+    return a*b/grootstGemeenschappelijkeDeler(a,b);
+}
+
+function versimpel(arr){
+    const g=arr.reduce(grootstGemeenschappelijkeDeler);return arr.map(x=>x/g);
+}
+
+const SUBSCRIPT={
+    "1":"₁",
+    "2":"₂",
+    "3":"₃",
+    "4":"₄",
+    "5":"₅",
+    "6":"₆",
+    "7":"₇",
+    "8":"₈",
+    "9":"₉"
+};
+
+function naarSubscript(n){
+    return n===1?"":String(n).split("").map(c=>SUBSCRIPT[c]||c).join("");
+}
+
+function coefficient(n){
+    return n===1?"":String(n);
+}
+
+function normaliseer(s) {
+  return s.replace(/[₀₁₂₃₄₅₆₇₈₉]/g, c =>
+    "₀₁₂₃₄₅₆₇₈₉".indexOf(c)
+  ).toLowerCase();
+}
+
+const KATIONEN={
+  H:    {symbool:"H",   lading:1},
+  NH4:  {symbool:"NH₄", lading:1},
+  Na:   {symbool:"Na",  lading:1},
+  K:    {symbool:"K",   lading:1},
+  Mg:   {symbool:"Mg",  lading:2},
+  Ca:   {symbool:"Ca",  lading:2},
+  Ba:   {symbool:"Ba",  lading:2},
+  Al:   {symbool:"Al",  lading:3},
+  Fe2:  {symbool:"Fe",  lading:2},
+  Fe3:  {symbool:"Fe",  lading:3},
+  Cu:   {symbool:"Cu",  lading:2},
+  Zn:   {symbool:"Zn",  lading:2},
+  Ag:   {symbool:"Ag",  lading:1},
+  Hg:   {symbool:"Hg",  lading:2},
+  Pb:   {symbool:"Pb",  lading:2}
+};
+const ANIONEN={
+  NO3:  {symbool:"NO₃", lading:1,   haakjes:true},
+  Cl:   {symbool:"Cl",  lading:1,   haakjes:false},
+  Br:   {symbool:"Br",  lading:1,   haakjes:false},
+  I:    {symbool:"I",   lading:1,   haakjes:false},
+  SO4:  {symbool:"SO₄", lading:2,   haakjes:true},
+  PO4:  {symbool:"PO₄", lading:3,   haakjes:true},
+  CO3:  {symbool:"CO₃", lading:2,   haakjes:true},
+  S:    {symbool:"S",   lading:2,   haakjes:false},
+  OH:   {symbool:"OH",  lading:1,   haakjes:true}
+};
+
+function ionVerhouding(kationLading,anionLading){
+    const LAAGST_GEMEENSCHAPPELIJK_PRODUCT=kleinstGemeenschappelijkProduct(kationLading,anionLading);
+    return{
+        aantalKation:LAAGST_GEMEENSCHAPPELIJK_PRODUCT/kationLading,
+        aantalAnion:LAAGST_GEMEENSCHAPPELIJK_PRODUCT/anionLading
+    };
+}
+
+function bouwZout(kationDeel,anionDeel){
+  const kation=KATIONEN[kationDeel],anion=ANIONEN[anionDeel];
+  const {aantalKation,aantalAnion}=ionVerhouding(kation.lading,anion.lading);
+  const KATION_DEEL=(aantalKation>1&&kation.symbool.length>1)?`(${kation.symbool})${naarSubscript(aantalKation)}`:(aantalKation>1?`${kation.symbool}${naarSubscript(aantalKation)}`:kation.symbool);
+  const ANION_DEEL=(aantalAnion>1&&anion.haakjes)?`(${anion.symbool})${naarSubscript(aantalAnion)}`:(aantalAnion>1?`${anion.symbool}${naarSubscript(aantalAnion)}`:anion.symbool);
+  return KATION_DEEL+ANION_DEEL;
+}
+
+function ionSymbool(key,isAnion){
+  if(isAnion){const lading=ANIONEN[key].lading;return ANIONEN[key].symbool+(lading===1?"⁻":lading===2?"²⁻":"³⁻");}
+  const lading=KATIONEN[key].lading;return KATIONEN[key].symbool+(lading===1?"⁺":lading===2?"²⁺":"³⁺");
+}
+
+const REAGENTIA=[
+  {formule:"HNO₃",      kationDeel:"H",     anionDeel:"NO3"},
+  {formule:"HCl",       kationDeel:"H",     anionDeel:"Cl"},
+  {formule:"HBr",       kationDeel:"H",     anionDeel:"Br"},
+  {formule:"HI",        kationDeel:"H",     anionDeel:"I"},
+  {formule:"H₂SO₄",     kationDeel:"H",     anionDeel:"SO4"},
+  {formule:"H₃PO₄",     kationDeel:"H",     anionDeel:"PO4"},
+ // {formule:"H₂O",       kationDeel:"H",     anionDeel:"OH"},
+  {formule:"NH₄NO₃",    kationDeel:"NH4",   anionDeel:"NO3"},
+  {formule:"NH₄Cl",     kationDeel:"NH4",   anionDeel:"Cl"},
+  {formule:"NH₄Br",     kationDeel:"NH4",   anionDeel:"Br"},
+  {formule:"NH₄I",      kationDeel:"NH4",   anionDeel:"I"},
+  {formule:"(NH₄)₂SO₄", kationDeel:"NH4",   anionDeel:"SO4"},
+  {formule:"(NH₄)₃PO₄", kationDeel:"NH4",   anionDeel:"PO4"},
+  {formule:"(NH₄)₂CO₃", kationDeel:"NH4",   anionDeel:"CO3"},
+  {formule:"(NH₄)₂S",   kationDeel:"NH4",   anionDeel:"S"},
+  {formule:"NH₄OH",     kationDeel:"NH4",   anionDeel:"OH"},
+  {formule:"NaNO₃",     kationDeel:"Na",    anionDeel:"NO3"},
+  {formule:"NaCl",      kationDeel:"Na",    anionDeel:"Cl"},
+  {formule:"NaBr",      kationDeel:"Na",    anionDeel:"Br"},
+  {formule:"NaI",       kationDeel:"Na",    anionDeel:"I"},
+  {formule:"Na₂SO₄",    kationDeel:"Na",    anionDeel:"SO4"},
+  {formule:"Na₃PO₄",    kationDeel:"Na",    anionDeel:"PO4"},
+  {formule:"Na₂CO₃",    kationDeel:"Na",    anionDeel:"CO3"},
+  {formule:"Na₂S",      kationDeel:"Na",    anionDeel:"S"},
+  {formule:"NaOH",      kationDeel:"Na",    anionDeel:"OH"},
+  {formule:"KNO₃",      kationDeel:"K",     anionDeel:"NO3"},
+  {formule:"KCl",       kationDeel:"K",     anionDeel:"Cl"},
+  {formule:"KBr",       kationDeel:"K",     anionDeel:"Br"},
+  {formule:"KI",        kationDeel:"K",     anionDeel:"I"},
+  {formule:"K₂SO₄",     kationDeel:"K",     anionDeel:"SO4"},
+  {formule:"K₃PO₄",     kationDeel:"K",     anionDeel:"PO4"},
+  {formule:"K₂CO₃",     kationDeel:"K",     anionDeel:"CO3"},
+  {formule:"K₂S",       kationDeel:"K",     anionDeel:"S"},
+  {formule:"KOH",       kationDeel:"K",     anionDeel:"OH"},
+  {formule:"Mg(NO₃)₂",  kationDeel:"Mg",    anionDeel:"NO3"},
+  {formule:"MgCl₂",     kationDeel:"Mg",    anionDeel:"Cl"},
+  {formule:"MgBr₂",     kationDeel:"Mg",    anionDeel:"Br"},
+  {formule:"MgI₂",      kationDeel:"Mg",    anionDeel:"I"},
+  {formule:"Ca(NO₃)₂",  kationDeel:"Ca",    anionDeel:"NO3"},
+  {formule:"CaCl₂",     kationDeel:"Ca",    anionDeel:"Cl"},
+  {formule:"CaBr₂",     kationDeel:"Ca",    anionDeel:"Br"},
+  {formule:"CaI₂",      kationDeel:"Ca",    anionDeel:"I"},
+  {formule:"Ba(NO₃)₂",  kationDeel:"Ba",    anionDeel:"NO3"},
+  {formule:"BaCl₂",     kationDeel:"Ba",    anionDeel:"Cl"},
+  {formule:"BaBr₂",     kationDeel:"Ba",    anionDeel:"Br"},
+  {formule:"BaI₂",      kationDeel:"Ba",    anionDeel:"I"},
+  {formule:"Al(NO₃)₃",  kationDeel:"Al",    anionDeel:"NO3"},
+  {formule:"AlCl₃",     kationDeel:"Al",    anionDeel:"Cl"},
+  {formule:"AlBr₃",     kationDeel:"Al",    anionDeel:"Br"},
+  {formule:"AlI₃",      kationDeel:"Al",    anionDeel:"I"},
+  {formule:"Fe(NO₃)₂",  kationDeel:"Fe2",   anionDeel:"NO3"},
+  {formule:"FeCl₂",     kationDeel:"Fe2",   anionDeel:"Cl"},
+  {formule:"FeBr₂",     kationDeel:"Fe2",   anionDeel:"Br"},
+  {formule:"Fe(NO₃)₃",  kationDeel:"Fe3",   anionDeel:"NO3"},
+  {formule:"FeCl₃",     kationDeel:"Fe3",   anionDeel:"Cl"},
+  {formule:"FeBr₃",     kationDeel:"Fe3",   anionDeel:"Br"},
+//  {formule:"FeI₃",      kationDeel:"Fe3",   anionDeel:"I"},
+  {formule:"Cu(NO₃)₂",  kationDeel:"Cu",    anionDeel:"NO3"},
+  {formule:"CuCl₂",     kationDeel:"Cu",    anionDeel:"Cl"},
+  {formule:"CuBr₂",     kationDeel:"Cu",    anionDeel:"Br"},
+//  {formule:"CuI₂",      kationDeel:"Cu",    anionDeel:"I"},
+  {formule:"Zn(NO₃)₂",  kationDeel:"Zn",    anionDeel:"NO3"},
+  {formule:"ZnCl₂",     kationDeel:"Zn",    anionDeel:"Cl"},
+  {formule:"ZnBr₂",     kationDeel:"Zn",    anionDeel:"Br"},
+  {formule:"ZnI₂",      kationDeel:"Zn",    anionDeel:"I"},
+  {formule:"AgNO₃",     kationDeel:"Ag",    anionDeel:"NO3"},
+  {formule:"Hg(NO₃)₂",  kationDeel:"Hg",    anionDeel:"NO3"},
+  {formule:"Pb(NO₃)₂",  kationDeel:"Pb",    anionDeel:"NO3"}
+];
+
+const NIET_OPLOSBAAR={
+  Mg:   ["SO4","PO4","CO3","S","OH"],
+  Ca:   ["PO4","CO3","OH"],
+  Ba:   ["SO4","PO4","CO3","S"],
+  Al:   ["PO4","S","OH"],
+  Fe2:  ["PO4","CO3","S","OH"],
+  Fe3:  ["PO4","CO3","S","OH"],
+  Cu:   ["PO4","CO3","S","OH"],
+  Zn:   ["PO4","CO3","S","OH"],
+  Ag:   ["Cl","Br","I","PO4","CO3","S","OH"],
+  Hg:   ["Br","PO4","CO3","S","OH"],
+  Pb:   ["I","SO4","PO4","CO3","S","OH"]
+};
+const STERKE_BASE=["Na","K","Ca","Ba","NH4"];
+
+function bouwNeerslag(kation1,kation2){
+  const ladingKation1=KATIONEN[kation1.kationDeel].lading,ladingAnion1=ANIONEN[kation1.anionDeel].lading,ladingKation2=KATIONEN[kation2.kationDeel].lading,ladingAnion2=ANIONEN[kation2.anionDeel].lading;
+  const verhouding1=ionVerhouding(ladingKation1,ladingAnion1),verhouding2=ionVerhouding(ladingKation2,ladingAnion2),rp1=ionVerhouding(ladingKation1,ladingAnion2),rp2=ionVerhouding(ladingKation2,ladingAnion1);
+  const DELER=grootstGemeenschappelijkeDeler(verhouding2.aantalAnion*rp1.aantalKation,verhouding1.aantalKation*rp1.aantalAnion);
+
+  let N1=(verhouding2.aantalAnion*rp1.aantalKation)/DELER,N2=(verhouding1.aantalKation*rp1.aantalAnion)/DELER;
+  let N3=N1*verhouding1.aantalKation/rp1.aantalKation,N4=N1*verhouding1.aantalAnion/rp2.aantalAnion;
+
+  [N1,N2,N3,N4] = versimpel([N1,N2,N3,N4]);
+
+  const nietOplosbaar1 = NIET_OPLOSBAAR[kation1.kationDeel]&&NIET_OPLOSBAAR[kation1.kationDeel].includes(kation2.anionDeel);
+  const nietOplosbaar2 = NIET_OPLOSBAAR[kation2.kationDeel]&&NIET_OPLOSBAAR[kation2.kationDeel].includes(kation1.anionDeel);
+
+  const sf1=bouwZout(kation1.kationDeel,kation2.anionDeel)+(nietOplosbaar1?"↓":"");
+  const sf2=bouwZout(kation2.kationDeel,kation1.anionDeel)+(nietOplosbaar2?"↓":"");
+
+  const stof=`${coefficient(N1)}${kation1.formule} + ${coefficient(N2)}${kation2.formule} → ${coefficient(N3)}${sf1} + ${coefficient(N4)}${sf2}`;
+
+  const ONDERDELEN=[];
+
+  if(nietOplosbaar1)ONDERDELEN.push(`${coefficient(rp1.aantalKation)}${ionSymbool(kation1.kationDeel,false)} + ${coefficient(rp1.aantalAnion)}${ionSymbool(kation2.anionDeel,true)} → ${bouwZout(kation1.kationDeel,kation2.anionDeel)}↓`);
+  if(nietOplosbaar2)ONDERDELEN.push(`${coefficient(rp2.aantalKation)}${ionSymbool(kation2.kationDeel,false)} + ${coefficient(rp2.aantalAnion)}${ionSymbool(kation1.anionDeel,true)} → ${bouwZout(kation2.kationDeel,kation1.anionDeel)}↓`);
+
+  return{
+    type:"neerslag",
+    bron1:kation1.formule,bron2:kation2.formule,
+    stof,
+    netto:ONDERDELEN.join(" ; ")};
+}
+
+function bouwGas(zuur,base){
+  const ladingKationBase = KATIONEN[base.kationDeel].lading;
+  const ladingAnionBase = ANIONEN[base.anionDeel].lading;
+  const ladingAnionZuur = ANIONEN[zuur.anionDeel].lading;
+  const verhoudingBase = ionVerhouding(ladingKationBase,ladingAnionBase);
+  const verhoudingZuur = ionVerhouding(1,ladingAnionZuur);
+  const DELER = grootstGemeenschappelijkeDeler(2*verhoudingBase.aantalAnion,verhoudingZuur.aantalKation);
+
+  let aantalZuur = (2*verhoudingBase.aantalAnion)/DELER;
+  let aantalBase = verhoudingZuur.aantalKation/DELER;
+
+  const aantalGas = aantalBase*verhoudingBase.aantalAnion;
+  const aantalWater = base.anionDeel==="CO3"?aantalGas:0;
+
+  const rp = ionVerhouding(ladingKationBase,ladingAnionZuur);
+  const nS = aantalBase*verhoudingBase.aantalKation/rp.aantalKation;
+  const arr = base.anionDeel==="CO3"?versimpel([aantalZuur,aantalBase,nS,aantalGas,aantalWater]):versimpel([aantalZuur,aantalBase,nS,aantalGas]);
+  const[NA,NB,NS,NG] = arr;const NW2 = base.anionDeel==="CO3"?arr[4]:0;
+  const sf = bouwZout(base.kationDeel,zuur.anionDeel);
+  const gasF = base.anionDeel === "CO3"?"CO₂↑":"H₂S↑";
+  let stof = `${coefficient(NA)}${zuur.formule} + ${coefficient(NB)}${base.formule} → ${coefficient(NS)}${sf}`;
+
+  if(base.anionDeel==="CO3")stof+=` + ${coefficient(NW2)}H₂O`;
+  stof+=` + ${coefficient(NG)}${gasF}`;
+  const netto = base.anionDeel==="CO3"?"2H⁺ + CO₃²⁻ → H₂O + CO₂↑":"2H⁺ + S²⁻ → H₂S↑";
+  
+  return{
+    type:"gas",
+    bron1:zuur.formule,bron2:base.formule,
+    stof,
+    netto
+};
+}
+
+function bouwAmmoniakGas(ammoniumZout, base) {
+  const ladingAnionZout = ANIONEN[ammoniumZout.anionDeel].lading;
+  const ladingKationBase = KATIONEN[base.kationDeel].lading;
+  const verhoudingZout = ionVerhouding(1, ladingAnionZout);
+  const verhoudingBase = ionVerhouding(ladingKationBase, 1);
+  const coefficientZout = verhoudingBase.aantalAnion;
+  const coëfficiëntBase = verhoudingZout.aantalKation;
+  const aantalGevormdGas = coefficientZout * verhoudingZout.aantalKation;
+  const gevormdZoutFormule = bouwZout(base.kationDeel, ammoniumZout.anionDeel);
+  const stof = `${coefficient(coefficientZout)}${ammoniumZout.formule} + ${coefficient(coëfficiëntBase)}${base.formule} → ${coefficient(1)}${gevormdZoutFormule} + ${coefficient(aantalGevormdGas)}H₂O + ${coefficient(aantalGevormdGas)}NH₃↑`;
+  const netto = "NH₄⁺ + OH⁻ → H₂O + NH₃↑";
+
+  return { 
+    type: "gas", 
+    bron1: ammoniumZout.formule, 
+    bron2: base.formule, 
+    stof, 
+    netto 
+  };
+}
+
+function bouwNeutralisatie(zuur,base){
+  const ladingAnionZuur = ANIONEN[zuur.anionDeel].lading,ladingKationBase = KATIONEN[base.kationDeel].lading;
+  const verhoudingZuur = ionVerhouding(1,ladingAnionZuur),verhoudingBase = ionVerhouding(ladingKationBase,1);
+  const DELER = grootstGemeenschappelijkeDeler(verhoudingBase.aantalAnion,verhoudingZuur.aantalKation);
+  let aantalZuur = verhoudingBase.aantalAnion/DELER,aantalBase = verhoudingZuur.aantalKation/DELER;
+  const aantalWater = aantalZuur*verhoudingZuur.aantalKation,rp = ionVerhouding(ladingKationBase,ladingAnionZuur),nS = aantalBase*verhoudingBase.aantalKation/rp.aantalKation;
+  const[NA,NB,NS,NW] = versimpel([aantalZuur,aantalBase,nS,aantalWater]);
+  
+  return{
+    type:"neutralisatie",bron1:zuur.formule,bron2:base.formule,
+    stof:`${coefficient(NA)}${zuur.formule} + ${coefficient(NB)}${base.formule} → ${coefficient(NS)}${bouwZout(base.kationDeel,zuur.anionDeel)} + ${coefficient(NW)}H₂O`,
+    netto:"H⁺ + OH⁻ → H₂O"
+};
+}
+
+function genereerReacties(kation1,kation2){
+  const resultaat = [];
+  const nietOplosbaar1 = NIET_OPLOSBAAR[kation1.kationDeel]&&NIET_OPLOSBAAR[kation1.kationDeel].includes(kation2.anionDeel);
+  const nietOplosbaar2 = NIET_OPLOSBAAR[kation2.kationDeel]&&NIET_OPLOSBAAR[kation2.kationDeel].includes(kation1.anionDeel);
+  if(nietOplosbaar1||nietOplosbaar2)resultaat.push(bouwNeerslag(kation1,kation2));
+  if(kation1.kationDeel === "H" && (kation2.anionDeel === "CO3"||kation2.anionDeel==="S"))resultaat.push(bouwGas(kation1,kation2));
+  if(kation2.kationDeel === "H" && (kation1.anionDeel === "CO3"||kation1.anionDeel==="S"))resultaat.push(bouwGas(kation2,kation1));
+  if(kation1.kationDeel === "H" && kation2.anionDeel === "OH"&&STERKE_BASE.includes(kation2.kationDeel))resultaat.push(bouwNeutralisatie(kation1,kation2));
+  if(kation2.kationDeel === "H" && kation1.anionDeel === "OH"&&STERKE_BASE.includes(kation1.kationDeel))resultaat.push(bouwNeutralisatie(kation2,kation1));
+  if(kation1.kationDeel === "NH4" && kation2.anionDeel === "OH" && STERKE_BASE.includes(kation2.kationDeel)) {
+    if(kation2.kationDeel !== "NH4") resultaat.push(bouwAmmoniakGas(kation1, kation2));
+  }
+  if(kation2.kationDeel === "NH4" && kation1.anionDeel === "OH" && STERKE_BASE.includes(kation1.kationDeel)) {
+    if(kation1.kationDeel == "NH4") resultaat.push(bouwAmmoniakGas(kation2, kation1));
+  }
+  return resultaat;
+}
+
+let allReactions = [],filtered = [],page = 0,activeType = "all";
+const perPage = 25;
+
+function buildAll(){
+  for(let i = 0;i<REAGENTIA.length;i++)
+    for(let j = i+1;j<REAGENTIA.length;j++)
+      for(const r of genereerReacties(REAGENTIA[i],REAGENTIA[j]))allReactions.push(r);
+  document.getElementById("s-total").textContent = allReactions.length;
+  document.getElementById("s-neerslag").textContent = allReactions.filter(r =>r.type==="neerslag").length;
+  document.getElementById("s-gas").textContent = allReactions.filter(r =>r.type==="gas").length;
+  document.getElementById("s-neutr").textContent = allReactions.filter(r=>r.type==="neutralisatie").length;
+  FilterToepassen();
+}
+
+function FilterToepassen(){
+  const zoek = normaliseer(document.getElementById("filter-text").value);
+  filtered = allReactions.filter(r=>{
+    if(activeType!=="all"&&r.type!==activeType)return false;
+    if(zoek && !normaliseer(r.bron1).includes(zoek) && !normaliseer(r.bron2).includes(zoek) && !normaliseer(r.stof).includes(zoek)) return false;
+    return true;
+  });
+  page = 0;render();
+}
+
+function render(){
+  const start = page*perPage,end = Math.min(start+perPage,filtered.length);
+  const rows = filtered.slice(start,end);
+  const tb = document.getElementById("tbody");
+  if(!rows.length){
+    tb.innerHTML = `<tr><td colspan="5" class="empty">Geen reacties gevonden</td></tr>`;
+  } else {
+    tb.innerHTML = rows.map(r=>{
+      const badge=r.type==="neerslag"?'<span class="badge badge-neerslag">neerslag</span>':
+                  r.type==="gas"?'<span class="badge badge-gas">gas</span>':
+                  '<span class="badge badge-neutralisatie">neutralisatie</span>';
+      return `<tr><td>${r.bron1}</td><td>${r.bron2}</td><td>${badge}</td><td class="formula">${r.stof}</td><td class="formula">${r.netto}</td></tr>`;
+    }).join("");
+  }
+  document.getElementById("result-count").textContent=`${filtered.length} reacties`;
+  document.getElementById("page-label").textContent=`${page+1} / ${Math.max(1,Math.ceil(filtered.length/perPage))}`;
+  document.getElementById("btn-prev").disabled=page===0;
+  document.getElementById("btn-next").disabled=end>=filtered.length;
+}
+
+function paginaVeranderen(d){page+=d;render();window.scrollTo({top:0,behavior:"smooth"});}
+
+function exportCSV(){
+  const rows=filtered.map(r=>[r.bron1,r.bron2,r.type,'"'+r.stof+'"','"'+r.netto+'"'].join(",")).join("\n");
+  const blob=new Blob(["Stof 1,Stof 2,Type,Stofvergelijking,Netto ionenvergelijking\n"+rows],{type:"text/csv"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ionenreacties.csv";a.click();
+}
+
+document.getElementById("filter-text").addEventListener("input",FilterToepassen);
+document.getElementById("stats").addEventListener("click",e=>{
+  const btn=e.target.closest(".stat");
+  if(!btn)return;
+  document.querySelectorAll(".stat").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  activeType=btn.dataset.type;
+  FilterToepassen();
+});
+
+buildAll();
+</script>
+</body>
+</html>
