@@ -3,97 +3,390 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NO₂ + CO Reactiesimulatie</title>
+<title>NO₂ + CO Reactiesimulatie — ChemieSim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #f5f4f0; color: #2c2c2a; padding: 20px; max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
-  .subtitle { font-size: 13px; color: #5f5e5a; margin-bottom: 14px; }
-  canvas { display: block; border: 1px solid #d3d1c7; border-radius: 10px; background: #eeecea; width: 100%; }
-  .stat-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin: 10px 0; }
-  .stat { background: #eeecea; border-radius: 8px; padding: 8px 10px; }
-  .stat .lbl { font-size: 11px; color: #5f5e5a; margin-bottom: 2px; }
-  .stat .val { font-size: 20px; font-weight: 500; }
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 12px; font-size: 12px; color: #5f5e5a; align-items: center; }
-  .dot { width: 13px; height: 13px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 4px; border: 1.5px solid rgba(0,0,0,0.15); }
-  .section-label { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: .05em; margin: 12px 0 5px; }
-  .ctrl { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 13px; color: #5f5e5a; }
-  .ctrl label { min-width: 110px; }
-  .ctrl input[type=range] { flex: 1; }
-  .ctrl .val-out { min-width: 80px; font-size: 13px; font-weight: 500; color: #2c2c2a; }
-  input[type=range] { accent-color: #378ADD; }
-  .hint { background: #faeeda; border: 1px solid #efcf8a; border-radius: 8px; padding: 8px 12px; font-size: 12px; color: #633806; margin: 10px 0 6px; line-height: 1.6; }
-  .vergelijking { background: #fff; border: 1px solid #d3d1c7; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; color: #2c2c2a; line-height: 1.8; }
-  .vergelijking strong { font-weight: 500; }
-  .btns { display: flex; gap: 8px; margin: 12px 0 6px; }
-  button { padding: 7px 16px; border: 1px solid #b4b2a9; border-radius: 8px; background: #fff; color: #2c2c2a; font-size: 13px; cursor: pointer; transition: background 0.15s; }
-  button:hover { background: #eeecea; }
-  button:active { transform: scale(0.97); }
-  #log { font-size: 11px; color: #5f5e5a; height: 52px; overflow: hidden; line-height: 1.8; margin-top: 6px; border-top: 1px solid #d3d1c7; padding-top: 6px; }
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.13);
+    --accent:   #5DCAA5;
+    --accent2:  #378ADD;
+    --text:     #e6edf3;
+    --muted:    #768390;
+    --tag-bg:   rgba(93,202,165,0.12);
+    --tag-text: #5DCAA5;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  .nav-back {
+    padding: 1.5rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  .nav-back:hover { color: var(--accent); }
+  .nav-back i { font-size: 14px; }
+
+  header {
+    padding: 2rem 0 1.75rem;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 2rem;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .sim-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sim-label::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+  }
+  h1 span { color: var(--accent); }
+
+  .header-desc {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 560px;
+  }
+
+  /* ── main panel ── */
+  #sim-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    animation: fadeUp 0.5s 0.15s ease both;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--border2);
+    width: 100%;
+  }
+
+  /* ── reaction equation ── */
+  .vergelijking {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1.25rem;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 2;
+    letter-spacing: 0.03em;
+  }
+  .vergelijking strong { color: var(--text); font-weight: 700; }
+
+  /* ── stats ── */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 1rem 0;
+  }
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+  }
+  .stat .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+  .stat .val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ── legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0.5rem 0 1.25rem;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .dot {
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(0,0,0,0.2);
+  }
+
+  /* ── section label ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 1.25rem 0 0.6rem;
+  }
+
+  /* ── sliders ── */
+  .ctrl {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0.5rem 0;
+  }
+  .ctrl label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 120px;
+    letter-spacing: 0.04em;
+  }
+  .ctrl input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .ctrl .val-out {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 80px;
+    text-align: right;
+  }
+
+  /* ── hint box ── */
+  .hint {
+    background: rgba(186,117,23,0.08);
+    border: 1px solid rgba(186,117,23,0.25);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-size: 12px;
+    font-weight: 300;
+    color: #e6a84a;
+    margin: 1rem 0 0.5rem;
+    line-height: 1.7;
+  }
+  .hint strong { font-weight: 500; }
+
+  /* ── buttons ── */
+  .btns { display: flex; gap: 8px; margin: 1rem 0 0.5rem; }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .btn i { font-size: 14px; }
+  .btn:hover { background: var(--surface2); color: var(--text); }
+  .btn.active {
+    background: var(--tag-bg);
+    color: var(--accent);
+    border-color: rgba(93,202,165,0.35);
+  }
+
+  /* ── log ── */
+  #log {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    height: 52px;
+    overflow: hidden;
+    line-height: 2;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.03em;
+  }
+
+  /* ── footer ── */
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .footer-brand { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .footer-brand strong { color: var(--accent); }
+  .footer-note { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
+<div class="wrap">
+  <a class="nav-back" href="../index.html"><i class="ti ti-arrow-left"></i> ChemieSim</a>
 
-<h1>NO₂ + CO — Moleculaire reactiesimulatie</h1>
-<p class="subtitle">Meerstapsreactie: NO₂ + CO → NO + CO₂ &nbsp;|&nbsp; Snelheidswet: <strong>v = k[NO₂]²</strong></p>
+  <header>
+    <p class="sim-label">Reactiekinetiek &mdash; Meerstapsreactie</p>
+    <h1>NO₂ + CO <span>→ NO + CO₂</span></h1>
+    <p class="header-desc">
+      Meerstapsreactie via het tussenproduct NO₃. Demonstreert waarom de snelheidswet <strong>v&nbsp;=&nbsp;k[NO₂]²</strong> is en de rol van de snelheidsbepalende stap.
+    </p>
+  </header>
 
-<div class="vergelijking">
-  <strong>Stap 1 (snelheidsbepalend):</strong> NO₂ + NO₂ → NO₃ + NO<br>
-  <strong>Stap 2:</strong> NO₃ + CO → NO₂ + CO₂<br>
-  <strong>Totaal:</strong> NO₂ + CO → NO + CO₂
+  <div id="sim-wrap">
+
+    <div class="vergelijking">
+      <strong>Stap 1 (snelheidsbepalend):</strong> NO₂ + NO₂ → NO₃ + NO<br>
+      <strong>Stap 2:</strong> NO₃ + CO → NO₂ + CO₂<br>
+      <strong>Totaal:</strong> NO₂ + CO → NO + CO₂
+    </div>
+
+    <canvas id="sim-canvas" width="680" height="370"></canvas>
+
+    <div class="stat-row">
+      <div class="stat"><div class="lbl">NO₂</div><div class="val" id="s-no2" style="color:#E24B4A">0</div></div>
+      <div class="stat"><div class="lbl">CO</div><div class="val" id="s-co" style="color:#639922">0</div></div>
+      <div class="stat"><div class="lbl">NO₃</div><div class="val" id="s-no3" style="color:#BA7517">0</div></div>
+      <div class="stat"><div class="lbl">NO</div><div class="val" id="s-no" style="color:#378ADD">0</div></div>
+      <div class="stat"><div class="lbl">CO₂</div><div class="val" id="s-co2" style="color:#5DCAA5">0</div></div>
+    </div>
+
+    <div class="legend">
+      <div class="leg-item"><div class="dot" style="width:13px;height:13px;background:#E24B4A;border-color:#A32D2D"></div> NO₂</div>
+      <div class="leg-item"><div class="dot" style="width:13px;height:13px;background:#639922;border-color:#3B6D11"></div> CO</div>
+      <div class="leg-item"><div class="dot" style="width:17px;height:17px;background:#BA7517;border-color:#854F0B"></div> NO₃ (tussenproduct)</div>
+      <div class="leg-item"><div class="dot" style="width:13px;height:13px;background:#378ADD;border-color:#185FA5"></div> NO</div>
+      <div class="leg-item"><div class="dot" style="width:15px;height:15px;background:#5DCAA5;border-color:#0F6E56"></div> CO₂</div>
+    </div>
+
+    <div class="section-label">Beginconcentratie (instellen vóór Start)</div>
+
+    <div class="ctrl">
+      <label style="color:#E24B4A">NO₂ moleculen</label>
+      <input type="range" id="sl-no2" min="4" max="24" value="10" step="1" style="accent-color:#E24B4A">
+      <span class="val-out" id="out-no2">10</span>
+    </div>
+    <div class="ctrl">
+      <label style="color:#639922">CO moleculen</label>
+      <input type="range" id="sl-co" min="4" max="24" value="10" step="1" style="accent-color:#639922">
+      <span class="val-out" id="out-co">10</span>
+    </div>
+
+    <div class="hint" id="hint">
+      Tip: verhoog CO maar houd NO₂ gelijk → reactiesnelheid verandert nauwelijks.<br>
+      Verhoog NO₂ → veel meer botsingen en reacties (v = k[NO₂]²).
+    </div>
+
+    <div class="section-label">Simulatie-instellingen</div>
+
+    <div class="ctrl">
+      <label>Temperatuur</label>
+      <input type="range" id="sl-temp" min="1" max="10" value="4" step="1">
+      <span class="val-out" id="out-temp">medium</span>
+    </div>
+
+    <div class="btns">
+      <button class="btn active" onclick="startSim()"><i class="ti ti-player-play"></i> Start</button>
+      <button class="btn" onclick="togglePause()"><i class="ti ti-player-pause"></i> Pauzeer</button>
+      <button class="btn" onclick="resetSim()"><i class="ti ti-refresh"></i> Reset</button>
+    </div>
+
+    <div id="log">Stel de concentraties in en klik Start.</div>
+
+  </div><!-- /sim-wrap -->
+
+  <footer>
+    <span class="footer-brand"><strong>ChemieSim</strong> &mdash; Interactieve leeromgeving</span>
+    <span class="footer-note">Simulatie werkt volledig in de browser &mdash; geen installatie nodig.</span>
+  </footer>
 </div>
-
-<canvas id="sim-canvas" width="680" height="370"></canvas>
-
-<div class="stat-row">
-  <div class="stat"><div class="lbl">NO₂</div><div class="val" id="s-no2" style="color:#E24B4A">0</div></div>
-  <div class="stat"><div class="lbl">CO</div><div class="val" id="s-co" style="color:#639922">0</div></div>
-  <div class="stat"><div class="lbl">NO₃</div><div class="val" id="s-no3" style="color:#BA7517">0</div></div>
-  <div class="stat"><div class="lbl">NO</div><div class="val" id="s-no" style="color:#378ADD">0</div></div>
-  <div class="stat"><div class="lbl">CO₂</div><div class="val" id="s-co2" style="color:#0F6E56">0</div></div>
-</div>
-
-<div class="legend">
-  <span><span class="dot" style="background:#E24B4A;border-color:#A32D2D"></span>NO₂</span>
-  <span><span class="dot" style="background:#639922;border-color:#3B6D11"></span>CO</span>
-  <span><span class="dot" style="background:#BA7517;border-color:#854F0B;width:17px;height:17px"></span>NO₃ (tussenproduct)</span>
-  <span><span class="dot" style="background:#378ADD;border-color:#185FA5"></span>NO</span>
-  <span><span class="dot" style="background:#5DCAA5;border-color:#0F6E56;width:15px;height:15px"></span>CO₂</span>
-</div>
-
-<div class="section-label">Beginconcentratie (instellen vóór Start)</div>
-
-<div class="ctrl">
-  <label style="color:#A32D2D;font-weight:500">NO₂ moleculen</label>
-  <input type="range" id="sl-no2" min="4" max="24" value="10" step="1" style="accent-color:#E24B4A">
-  <span class="val-out" id="out-no2">10</span>
-</div>
-<div class="ctrl">
-  <label style="color:#3B6D11;font-weight:500">CO moleculen</label>
-  <input type="range" id="sl-co" min="4" max="24" value="10" step="1" style="accent-color:#639922">
-  <span class="val-out" id="out-co">10</span>
-</div>
-
-<div class="hint" id="hint">
-  Tip: verhoog CO maar houd NO₂ gelijk → reactiesnelheid verandert nauwelijks.<br>
-  Verhoog NO₂ → veel meer botsingen en reacties (v = k[NO₂]²).
-</div>
-
-<div class="section-label">Simulatie-instellingen</div>
-
-<div class="ctrl">
-  <label>Temperatuur</label>
-  <input type="range" id="sl-temp" min="1" max="10" value="4" step="1">
-  <span class="val-out" id="out-temp">medium</span>
-</div>
-
-<div class="btns">
-  <button onclick="startSim()">▶ Start</button>
-  <button onclick="togglePause()">⏸ Pauzeer</button>
-  <button onclick="resetSim()">↺ Reset</button>
-</div>
-
-<div id="log">Stel de concentraties in en klik Start.</div>
 
 <script>
 const canvas = document.getElementById('sim-canvas');
@@ -216,7 +509,7 @@ function checkCollisions(){
 }
 
 function drawBg(){
-  ctx.fillStyle='#eeecea';
+  ctx.fillStyle='#0d1b2e';
   ctx.fillRect(0,0,W,H);
 }
 
@@ -225,12 +518,12 @@ function draw(){
   molecules.forEach(m=>{
     const t=TYPES[m.type];
     ctx.save();
-    if(m.flash>0){ctx.shadowColor=t.color;ctx.shadowBlur=14;}
+    if(m.flash>0){ctx.shadowColor=t.color;ctx.shadowBlur=16;}
     ctx.beginPath();ctx.arc(m.x,m.y,t.r,0,Math.PI*2);
     ctx.fillStyle=t.color;ctx.fill();
     ctx.strokeStyle=t.border;ctx.lineWidth=1.5;ctx.stroke();
     ctx.restore();
-    ctx.fillStyle='#fff';
+    ctx.fillStyle='rgba(255,255,255,0.85)';
     ctx.font='500 '+(Math.max(9,t.r-3))+'px system-ui,sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(t.label,m.x,m.y);
