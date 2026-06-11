@@ -3,75 +3,319 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgCl Neerslagreactie</title>
+<title>AgCl Neerslagreactie — ChemieSim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 1rem; font-family: sans-serif; background: #f0f4f8; }
-  #sim-wrap { max-width: 700px; margin: 0 auto; }
-  h2 { font-size: 17px; font-weight: 600; margin: 0 0 4px; color: #1a202c; }
-  .subtitle { font-size: 12px; color: #666; margin: 0 0 0.6rem; }
-  canvas { display: block; border-radius: 12px; border: 1px solid #cbd5e0; background: #0d1b2e; margin: 0 auto; width: 100%; max-width: 680px; }
-  .controls { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.13);
+    --accent:   #5DCAA5;
+    --accent2:  #378ADD;
+    --text:     #e6edf3;
+    --muted:    #768390;
+    --tag-bg:   rgba(93,202,165,0.12);
+    --tag-text: #5DCAA5;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  .nav-back {
+    padding: 1.5rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  .nav-back:hover { color: var(--accent); }
+  .nav-back i { font-size: 14px; }
+
+  header {
+    padding: 2rem 0 1.75rem;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 2rem;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .sim-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sim-label::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+  h1 span { color: var(--accent); }
+
+  .reaction-eq {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.03em;
+  }
+
+  .header-desc {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 540px;
+  }
+
+  #sim-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    animation: fadeUp 0.5s 0.15s ease both;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--border2);
+    background: #0d1b2e;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 1rem 0 0.5rem;
+    flex-wrap: wrap;
+  }
+
   .btns { display: flex; gap: 8px; }
-  .btn { padding: 6px 14px; border: 1px solid #cbd5e0; border-radius: 8px; background: white; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-  .btn:hover { background: #edf2f7; }
-  .btn.active { background: #ebf8ff; color: #2b6cb0; border-color: #90cdf4; }
-  .slider-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
-  .slider-row label { font-size: 12px; color: #555; white-space: nowrap; }
-  .slider-row input[type=range] { flex: 1; }
-  .slider-row span { font-size: 12px; font-weight: 600; min-width: 28px; color: #333; }
-  .legend { display: flex; gap: 10px; margin: 6px 0; flex-wrap: wrap; }
-  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #444; }
-  .leg-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .btn i { font-size: 14px; }
+  .btn:hover {
+    background: var(--surface2);
+    color: var(--text);
+    border-color: var(--border2);
+  }
+  .btn.active {
+    background: var(--tag-bg);
+    color: var(--accent);
+    border-color: rgba(93,202,165,0.35);
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 200px;
+  }
+  .slider-row label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+  .slider-row input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .slider-row span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    margin: 0.75rem 0 0;
+    flex-wrap: wrap;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .leg-rect { width: 14px; height: 8px; border-radius: 3px; flex-shrink: 0; }
-  .stats { display: flex; gap: 16px; margin: 6px 0; flex-wrap: wrap; }
-  .stat { font-size: 12px; color: #555; }
-  .stat span { font-weight: 600; color: #1a202c; }
-  .reaction-eq { font-size: 12px; color: #666; margin: 2px 0 6px; font-style: italic; }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+  .stat span { color: var(--accent); }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .footer-brand { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .footer-brand strong { color: var(--accent); }
+  .footer-note { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
-<div id="sim-wrap">
-  <h2>Neerslagreactie: AgNO₃ + NaCl → AgCl↓ + NaNO₃</h2>
-  <p class="reaction-eq">Ag⁺(aq) + Cl⁻(aq) → AgCl(s)</p>
-  <canvas id="c" width="680" height="480"></canvas>
+<div class="wrap">
+  <a class="nav-back" href="../index.html"><i class="ti ti-arrow-left"></i> ChemieSim</a>
 
-  <div class="controls">
-    <div class="btns">
-      <button class="btn active" id="btn-play" onclick="togglePlay()">
-        <i class="ti ti-player-play"></i> Start
-      </button>
-      <button class="btn" id="btn-reset" onclick="resetSim()">
-        <i class="ti ti-refresh"></i> Reset
-      </button>
+  <header>
+    <p class="sim-label">Ionuitwisselingsreactie &mdash; Neerslag</p>
+    <h1>AgNO₃ + NaCl <span>→ AgCl↓</span></h1>
+    <p class="reaction-eq">Ag⁺(aq) + Cl⁻(aq) → AgCl(s)</p>
+    <p class="header-desc">
+      Neerslagreactie tussen AgNO₃ en NaCl. Wanneer Ag⁺- en Cl⁻-ionen elkaar ontmoeten, vormen ze het onoplosbare zilverchloride dat naar de bodem zinkt.
+    </p>
+  </header>
+
+  <div id="sim-wrap">
+    <canvas id="c" width="680" height="480"></canvas>
+
+    <div class="controls">
+      <div class="btns">
+        <button class="btn active" id="btn-play" onclick="togglePlay()">
+          <i class="ti ti-player-play"></i> Start
+        </button>
+        <button class="btn" id="btn-reset" onclick="resetSim()">
+          <i class="ti ti-refresh"></i> Reset
+        </button>
+      </div>
+      <div class="slider-row">
+        <label>Temperatuur (°C)</label>
+        <input type="range" min="10" max="90" step="1" value="25" id="temp-slider"
+          oninput="document.getElementById('temp-val').textContent=this.value; temperature=+this.value">
+        <span id="temp-val">25</span>
+      </div>
     </div>
-    <div class="slider-row">
-      <label>Temperatuur (°C)</label>
-      <input type="range" min="10" max="90" step="1" value="25" id="temp-slider"
-        oninput="document.getElementById('temp-val').textContent=this.value; temperature=+this.value">
-      <span id="temp-val">25</span>
+
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#4fc3f7"></div> H₂O</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ef9a9a"></div> Na⁺ (rooster)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ce93d8"></div> Cl⁻ (rooster)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ffd54f"></div> Ag⁺ (rooster)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#a5d6a7"></div> NO₃⁻ (rooster)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ff5252"></div> Na⁺ (aq)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ea80fc"></div> Cl⁻ (aq)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ffca28"></div> Ag⁺ (aq)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#69f0ae"></div> NO₃⁻ (aq)</div>
+      <div class="leg-item"><div class="leg-rect" style="background:#b0bec5"></div> AgCl↓ (neerslag)</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">NaCl opgelost: <span id="s-nacl">0</span> / <span id="s-nacl-tot">0</span></div>
+      <div class="stat">AgNO₃ opgelost: <span id="s-agno3">0</span> / <span id="s-agno3-tot">0</span></div>
+      <div class="stat">AgCl neerslag: <span id="s-agcl">0</span> deeltjes</div>
     </div>
   </div>
 
-  <div class="legend">
-    <div class="leg-item"><div class="leg-dot" style="background:#4fc3f7"></div> H₂O</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ef9a9a"></div> Na⁺ (rooster)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ce93d8"></div> Cl⁻ (rooster)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ffd54f"></div> Ag⁺ (rooster)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#a5d6a7"></div> NO₃⁻ (rooster)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ff5252"></div> Na⁺ (aq)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ea80fc"></div> Cl⁻ (aq)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#ffca28"></div> Ag⁺ (aq)</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#69f0ae"></div> NO₃⁻ (aq)</div>
-    <div class="leg-item"><div class="leg-rect" style="background:#b0bec5"></div> AgCl↓ (neerslag)</div>
-  </div>
-
-  <div class="stats">
-    <div class="stat">NaCl opgelost: <span id="s-nacl">0</span> / <span id="s-nacl-tot">0</span></div>
-    <div class="stat">AgNO₃ opgelost: <span id="s-agno3">0</span> / <span id="s-agno3-tot">0</span></div>
-    <div class="stat">AgCl neerslag: <span id="s-agcl">0</span> deeltjes</div>
-  </div>
+  <footer>
+    <span class="footer-brand"><strong>ChemieSim</strong> &mdash; Interactieve leeromgeving</span>
+    <span class="footer-note">Simulatie werkt volledig in de browser &mdash; geen installatie nodig.</span>
+  </footer>
 </div>
 
 <script>
@@ -84,22 +328,18 @@ let animId = null;
 let lastTime = 0;
 let temperature = 25;
 
-// Particle radii
 const R_WATER = 9;
 const R_NA = 10, R_CL = 12, R_AG = 13, R_NO3 = 11;
-const R_AGCL = 14; // precipitate particle
+const R_AGCL = 14;
 
 const SDIST_NA = 23, SDIST_CL = 26, SDIST_AG = 25, SDIST_NO3 = 24;
 const WATER_PER_ION = 5;
 const CELL = 34;
 
-// ── State ─────────────────────────────────────────────────────────────────────
 let ions = [];
 let waterMols = [];
-let precipitate = []; // AgCl particles sinking to bottom
+let precipitate = [];
 
-// ── Spatial hash ──────────────────────────────────────────────────────────────
-// Cell size based on the largest particle so all relevant pairs are found
 const CELL_SIZE = (R_AGCL + R_WATER) * 2 + 2;
 function buildSpatialGrid(particles) {
   const grid = new Map();
@@ -125,7 +365,6 @@ function getNeighborCandidates(sg, p) {
   return result;
 }
 
-// ── Grid builders ─────────────────────────────────────────────────────────────
 function buildNaClGrid(ox, oy, cols, rows) {
   const result = [];
   for (let r = 0; r < rows; r++) {
@@ -171,7 +410,6 @@ function solvDist(type) {
   return { Na: SDIST_NA, Cl: SDIST_CL, Ag: SDIST_AG, NO3: SDIST_NO3 }[type] || 24;
 }
 
-// ── Water builder ─────────────────────────────────────────────────────────────
 function buildWater() {
   waterMols = [];
   const allGridRects = [
@@ -215,10 +453,8 @@ function resetSim() {
   btn.innerHTML = '<i class="ti ti-player-play"></i> Start';
   btn.classList.add('active');
 
-  // NaCl grid: left side
   const naclCols = 5, naclRows = 5;
   const naclOx = 30, naclOy = 40;
-  // AgNO3 grid: right side
   const agno3Cols = 5, agno3Rows = 5;
   const agno3Ox = W - 30 - agno3Cols * CELL, agno3Oy = 40;
 
@@ -259,7 +495,6 @@ function updateStats() {
   document.getElementById('s-agcl').textContent = precipitate.length;
 }
 
-// ── Grid edge helpers ─────────────────────────────────────────────────────────
 function isEdgeIon(ion) {
   const g = ions.filter(i => i.state === 'grid' && i.gridId === ion.gridId);
   if (!g.length) return true;
@@ -272,7 +507,6 @@ function getNeighborBonds(ion) {
     Math.abs(o.col - ion.col) + Math.abs(o.row - ion.row) === 1).length;
 }
 
-// ── Collision helpers ─────────────────────────────────────────────────────────
 function randV(s) { return (Math.random() - 0.5) * 2 * s; }
 
 function resolveCircleCollision(a, b) {
@@ -314,8 +548,6 @@ function angleDiff(a, b) {
   return ((b - a) % (Math.PI*2) + Math.PI*3) % (Math.PI*2) - Math.PI;
 }
 function targetRot(aa, type) {
-  // Na+, Ag+ → O faces ion (lone pair toward positive)
-  // Cl-, NO3- → H faces ion
   return (type === 'Na' || type === 'Ag') ? aa + Math.PI : aa;
 }
 
@@ -328,9 +560,7 @@ function applyBrownian(p, rawDt, scale) {
   if (v > maxV) { p.vx *= maxV/v; p.vy *= maxV/v; }
 }
 
-// ── Precipitation ─────────────────────────────────────────────────────────────
 function formPrecipitate(agIon, clIon) {
-  // detach all water from both ions
   [...agIon.waterAttached, ...clIon.waterAttached].forEach(w => {
     w.state = 'free';
     w.boundIon = null;
@@ -349,19 +579,16 @@ function formPrecipitate(agIon, clIon) {
     alpha: 1
   });
 
-  // remove both ions from simulation
   ions = ions.filter(i => i !== agIon && i !== clIon);
   updateStats();
 }
 
-// ── Main loop ─────────────────────────────────────────────────────────────────
 function loop(ts) {
   const rawDt = Math.min((ts - lastTime) / 16.67, 3);
   lastTime = ts;
   const speedFactor = temperature / 10;
   const dt = rawDt * (speedFactor * 0.6 + 0.4);
 
-  // 1. Move free water
   waterMols.forEach(w => {
     if (w.state !== 'free') return;
     applyBrownian(w, rawDt, 1);
@@ -374,10 +601,7 @@ function loop(ts) {
     if (w.y > H - w.r) { w.y = H - w.r; w.vy = -Math.abs(w.vy); }
   });
 
-  // 2. Water-water collisions — ALL water molecules (free + bound) collide with each other.
-  //    Bound water can be nudged by free water; only free water velocity is truly updated.
-  //    Bound water position correction is allowed so free molecules don't phase through them.
-  const allWater = waterMols; // free + bound
+  const allWater = waterMols;
   const sgW = buildSpatialGrid(allWater);
   const checked = new Set();
   for (const w of allWater) {
@@ -387,11 +611,9 @@ function loop(ts) {
       const pk = ia < ib ? `${ia}_${ib}` : `${ib}_${ia}`;
       if (checked.has(pk)) continue;
       checked.add(pk);
-      // Both free: full elastic collision
       if (w.state === 'free' && other.state === 'free') {
         resolveCircleCollision(w, other);
       } else {
-        // At least one is bound: only push the free one away, bound stays in orbit
         const dx = w.x - other.x, dy = w.y - other.y;
         const dist = Math.hypot(dx, dy);
         const minD = w.r + other.r;
@@ -412,9 +634,7 @@ function loop(ts) {
     }
   }
 
-  // 2b. Water/ion collisions with precipitate (AgCl acts as a solid obstacle)
   precipitate.forEach(p => {
-    // collide with all free water
     waterMols.forEach(w => {
       if (w.state !== 'free') return;
       const dx = w.x - p.x, dy = w.y - p.y;
@@ -424,7 +644,6 @@ function loop(ts) {
         const nx = dx/dist, ny = dy/dist;
         w.x += nx * (minD - dist);
         w.y += ny * (minD - dist);
-        // transfer a little momentum to the precipitate (heavy, moves little)
         const dot = w.vx*nx + w.vy*ny;
         if (dot < 0) {
           w.vx -= dot * nx * 1.5;
@@ -434,7 +653,6 @@ function loop(ts) {
         }
       }
     });
-    // collide with free ions
     ions.filter(i => i.state === 'free').forEach(ion => {
       const dx = ion.x - p.x, dy = ion.y - p.y;
       const dist = Math.hypot(dx, dy);
@@ -454,9 +672,8 @@ function loop(ts) {
     });
   });
 
-  const freeWater = waterMols.filter(w => w.state === 'free'); // used later in step 3
+  const freeWater = waterMols.filter(w => w.state === 'free');
 
-  // 3. Water-ion interactions (dissolution)
   freeWater.forEach(w => {
     ions.forEach(ion => {
       if (ion.state !== 'grid' && ion.state !== 'free') return;
@@ -499,7 +716,6 @@ function loop(ts) {
     });
   });
 
-  // 4. Bound water orbit
   waterMols.forEach(w => {
     if (w.state !== 'bound' || !w.boundIon) return;
     const ion = w.boundIon;
@@ -512,7 +728,6 @@ function loop(ts) {
     w.rot += angleDiff(w.rot, tr) * 0.15;
   });
 
-  // 5. Move free ions
   ions.filter(i => i.state === 'free').forEach(ion => {
     applyBrownian(ion, rawDt, 0.28);
     ion.x += ion.vx * dt * 0.38;
@@ -524,38 +739,32 @@ function loop(ts) {
     if (ion.y > H - ir) { ion.y = H - ir; ion.vy = -Math.abs(ion.vy); }
   });
 
-  // 6. Precipitation: check Ag+ vs Cl- collisions
   const freeAg = ions.filter(i => i.type === 'Ag' && i.state === 'free');
   const freeCl = ions.filter(i => i.type === 'Cl' && i.state === 'free');
   outer:
   for (const ag of freeAg) {
     for (const cl of freeCl) {
       const dist = Math.hypot(ag.x - cl.x, ag.y - cl.y);
-      // Ag+ and Cl- react when close enough (within their radii + small reaction radius)
       if (dist < ag.r + cl.r + 6) {
         formPrecipitate(ag, cl);
-        break outer; // avoid processing removed ions
+        break outer;
       }
     }
   }
 
-  // 7. Move precipitate particles (sink to bottom)
   precipitate.forEach(p => {
-    p.vy += 0.04 * rawDt; // gravity
+    p.vy += 0.04 * rawDt;
     p.vx *= 0.98;
     p.vy *= 0.99;
     p.x += p.vx * rawDt;
     p.y += p.vy * rawDt;
-    // floor
     if (p.y > H - p.r - 4) {
       p.y = H - p.r - 4;
       p.vy *= -0.15;
       p.vx *= 0.85;
     }
-    // walls
     if (p.x < p.r)     { p.x = p.r;     p.vx =  Math.abs(p.vx); }
     if (p.x > W - p.r) { p.x = W - p.r; p.vx = -Math.abs(p.vx); }
-    // stack on other precipitate particles
     precipitate.forEach(other => {
       if (other === p) return;
       const dx = p.x - other.x, dy = p.y - other.y;
@@ -579,7 +788,6 @@ function loop(ts) {
   if (playing) animId = requestAnimationFrame(loop);
 }
 
-// ── Drawing ───────────────────────────────────────────────────────────────────
 function ionColor(type, state) {
   const palette = {
     Na: { grid: '#ef9a9a', free: '#ff5252' },
@@ -630,7 +838,6 @@ function drawIon(ion) {
 
 function drawPrecipitate(p) {
   ctx.save();
-  // White/grey crystalline appearance for AgCl
   const gradient = ctx.createRadialGradient(p.x - p.r*0.3, p.y - p.r*0.3, 1, p.x, p.y, p.r);
   gradient.addColorStop(0, '#eceff1');
   gradient.addColorStop(0.5, '#b0bec5');
@@ -650,19 +857,15 @@ function drawPrecipitate(p) {
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
-
-  // Background
   ctx.fillStyle = '#0d1b2e';
   ctx.fillRect(0, 0, W, H);
 
-  // Bottom "floor" tint to indicate sedimentation zone
   const floorGrad = ctx.createLinearGradient(0, H - 50, 0, H);
   floorGrad.addColorStop(0, 'rgba(120,144,156,0)');
   floorGrad.addColorStop(1, 'rgba(120,144,156,0.08)');
   ctx.fillStyle = floorGrad;
   ctx.fillRect(0, H - 50, W, 50);
 
-  // Grid lattice bonds for remaining grid ions
   ['NaCl', 'AgNO3'].forEach(gridId => {
     const g = ions.filter(i => i.state === 'grid' && i.gridId === gridId);
     ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
@@ -672,7 +875,6 @@ function draw() {
     });
   });
 
-  // Grid labels
   const naclIons = ions.filter(i => i.gridId === 'NaCl' && i.state === 'grid');
   const agno3Ions = ions.filter(i => i.gridId === 'AgNO3' && i.state === 'grid');
   if (naclIons.length > 0) {
@@ -694,16 +896,10 @@ function draw() {
     ctx.fillText('AgNO₃', cx, ty);
   }
 
-  // Water molecules
   waterMols.forEach(w => drawWaterMol(w.x, w.y, w.rot, w.r));
-
-  // Ions
   ions.forEach(ion => drawIon(ion));
-
-  // Precipitate
   precipitate.forEach(p => drawPrecipitate(p));
 
-  // "neerslag" label if any precipitate
   if (precipitate.length > 0) {
     ctx.fillStyle = 'rgba(176,190,197,0.55)';
     ctx.font = '10px sans-serif';
