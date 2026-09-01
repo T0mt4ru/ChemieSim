@@ -327,8 +327,8 @@
   <div id="sim-wrap">
 
     <div class="vergelijking">
-      <strong>Voorwaarts:</strong> I₂ + H₂ → [geactiveerd complex] → 2 HI<br>
-      <strong>Achterwaarts:</strong> 2 HI → [geactiveerd complex] → I₂ + H₂<br>
+      <strong>Heenreactie:</strong> I₂ + H₂ → [geactiveerd complex] → 2 HI<br>
+      <strong>Terugreactie:</strong> 2 HI → [geactiveerd complex] → I₂ + H₂<br>
       <strong>Netto:</strong> <span class="netto">I₂ + H₂ ⇌ 2 HI</span>
     </div>
 
@@ -338,8 +338,8 @@
       <div class="stat"><div class="lbl">I₂</div><div class="val" id="s-i2" style="color:#9C5FCF">0</div></div>
       <div class="stat"><div class="lbl">H₂</div><div class="val" id="s-h2" style="color:#378ADD">0</div></div>
       <div class="stat"><div class="lbl">HI</div><div class="val" id="s-hi" style="color:#5DCAA5">0</div></div>
-      <div class="stat"><div class="lbl">→ Voorwaarts</div><div class="val" id="s-fwd" style="color:#e6a84a;font-size:18px">0</div></div>
-      <div class="stat"><div class="lbl">← Achterwaarts</div><div class="val" id="s-rev" style="color:#e6a84a;font-size:18px">0</div></div>
+      <div class="stat"><div class="lbl">→ Heenreactie</div><div class="val" id="s-fwd" style="color:#e6a84a;font-size:18px">0</div></div>
+      <div class="stat"><div class="lbl">← Terugreactie</div><div class="val" id="s-rev" style="color:#e6a84a;font-size:18px">0</div></div>
     </div>
 
     <div class="legend">
@@ -622,9 +622,7 @@ function addLog(msg){
   document.getElementById('log').innerHTML=logLines.join('<br>');
 }
 
-// Houdt bij hoe de voorwaartse/achterwaartse reactiesnelheid zich verhoudt
-// per venster van 180 frames. Geen UI-hint meer — enkel interne telling/reset,
-// zodat er niets naar een niet-bestaand element wordt geschreven.
+// Houdt bij hoe de heen/terugreactiesnelheid zich verhoudt
 function evaluateWindow(){
   windowFwd=0; windowRev=0;
 }
