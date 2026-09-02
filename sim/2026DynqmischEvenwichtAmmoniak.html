@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N₂ + 3 H₂ ⇌ 2 NH₃ — Evenwichtsreactie — ChemieSim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.13);
+    --accent:   #5DCAA5;
+    --accent2:  #378ADD;
+    --text:     #e6edf3;
+    --muted:    #768390;
+    --tag-bg:   rgba(93,202,165,0.12);
+    --tag-text: #5DCAA5;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  .nav-back {
+    padding: 1.5rem 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    transition: color 0.2s;
+  }
+  .nav-back:hover { color: var(--accent); }
+  .nav-back i { font-size: 14px; }
+
+  header {
+    padding: 2rem 0 1.75rem;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 2rem;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .sim-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sim-label::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+  }
+  h1 span { color: var(--accent); }
+
+  .header-desc {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 560px;
+  }
+
+  #sim-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    animation: fadeUp 0.5s 0.15s ease both;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--border2);
+    width: 100%;
+  }
+
+  .vergelijking {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1.25rem;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 2;
+    letter-spacing: 0.03em;
+  }
+  .vergelijking strong { color: var(--text); font-weight: 700; }
+  .vergelijking .netto { color: var(--accent); }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 1rem 0;
+  }
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 0.7rem;
+  }
+  .stat .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+  .stat .val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0.5rem 0 1.25rem;
+  }
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .dot {
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1.5px solid rgba(0,0,0,0.2);
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 1.25rem 0 0.6rem;
+  }
+
+  .ctrl {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0.5rem 0;
+  }
+  .ctrl label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 150px;
+    letter-spacing: 0.04em;
+  }
+  .ctrl input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .ctrl .val-out {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 90px;
+    text-align: right;
+  }
+
+  .btns { display: flex; gap: 8px; margin: 1rem 0 0.5rem; flex-wrap: wrap; }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .btn i { font-size: 14px; }
+  .btn:hover { background: var(--surface2); color: var(--text); }
+  .btn.active {
+    background: var(--tag-bg);
+    color: var(--accent);
+    border-color: rgba(93,202,165,0.35);
+  }
+  .btn.amber {
+    color: #e6a84a;
+    border-color: rgba(186,117,23,0.3);
+  }
+  .btn.amber:hover {
+    background: rgba(186,117,23,0.1);
+    color: #e6a84a;
+  }
+
+  #graph-canvas {
+    margin-top: 0.5rem;
+    background: #0d1b2e;
+  }
+  .graph-caption {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  #log {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    height: 52px;
+    overflow: hidden;
+    line-height: 2;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    letter-spacing: 0.03em;
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .footer-brand { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .footer-brand strong { color: var(--accent); }
+  .footer-note { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 560px) {
+    .stat-row { grid-template-columns: repeat(3, 1fr); }
+    .ctrl label { min-width: 110px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="nav-back" href="../index.html"><i class="ti ti-arrow-left"></i> ChemieSim</a>
+
+  <header>
+    <p class="sim-label">Chemisch evenwicht &mdash; Dynamisch evenwicht</p>
+    <h1>N₂ + 3 H₂ <span>⇌ 2 NH₃</span></h1>
+    <p class="header-desc">
+      Stikstofgas en waterstofgas ondergaan effectieve botsingen, vormen een geactiveerd complex en reageren tot ammoniak &mdash; en omgekeerd. Voor elke afgebroken N₂ zijn drie H₂-moleculen nodig; bij de terugreactie leveren twee NH₃-moleculen precies die verhouding weer terug. Beide reacties blijven voortdurend doorgaan: een <strong>dynamisch evenwicht</strong>.
+    </p>
+  </header>
+
+  <div id="sim-wrap">
+
+    <div class="vergelijking">
+      <strong>Heenreactie:</strong> N₂ + 3 H₂ → [geactiveerd complex] → 2 NH₃<br>
+      <strong>Terugreactie:</strong> 2 NH₃ → [geactiveerd complex] → N₂ + 3 H₂<br>
+      <strong>Netto:</strong> <span class="netto">N₂ + 3 H₂ ⇌ 2 NH₃</span>
+    </div>
+
+    <canvas id="sim-canvas" width="680" height="370"></canvas>
+
+    <div class="stat-row">
+      <div class="stat"><div class="lbl">N₂</div><div class="val" id="s-n2" style="color:#3B82C4">0</div></div>
+      <div class="stat"><div class="lbl">H₂</div><div class="val" id="s-h2" style="color:#4FD3C4">0</div></div>
+      <div class="stat"><div class="lbl">NH₃</div><div class="val" id="s-nh3" style="color:#5DCAA5">0</div></div>
+      <div class="stat"><div class="lbl">→ Heenreactie</div><div class="val" id="s-fwd" style="color:#e6a84a;font-size:18px">0</div></div>
+      <div class="stat"><div class="lbl">← Terugreactie</div><div class="val" id="s-rev" style="color:#e6a84a;font-size:18px">0</div></div>
+    </div>
+
+    <div class="legend">
+      <div class="leg-item"><div class="dot" style="width:15px;height:15px;background:#3B82C4;border-color:#20507F"></div> N (stikstof)</div>
+      <div class="leg-item"><div class="dot" style="width:11px;height:11px;background:#E9E9EF;border-color:#9AA1AC"></div> H (waterstof)</div>
+      <div class="leg-item"><div class="dot" style="width:16px;height:16px;background:radial-gradient(circle at 35% 35%,#3B82C4 30%,#E9E9EF 32%);border-color:#20507F"></div> NH₃</div>
+    </div>
+
+    <div class="section-label">Beginhoeveelheid (instellen vóór Start)</div>
+
+    <div class="ctrl">
+      <label style="color:#3B82C4">N₂ moleculen</label>
+      <input type="range" id="sl-n2" min="0" max="10" value="4" step="1" style="accent-color:#3B82C4">
+      <span class="val-out" id="out-n2">4</span>
+    </div>
+    <div class="ctrl">
+      <label style="color:#ffffff">H₂ moleculen</label>
+      <input type="range" id="sl-h2" min="0" max="30" value="12" step="1" style="accent-color:#ffffff">
+      <span class="val-out" id="out-h2">12</span>
+    </div>
+    <div class="ctrl">
+      <label style="color:#5DCAA5">NH₃ moleculen</label>
+      <input type="range" id="sl-nh3" min="0" max="20" value="0" step="2" style="accent-color:#5DCAA5">
+      <span class="val-out" id="out-nh3">0</span>
+    </div>
+
+    <div class="btns">
+      <button class="btn active" onclick="startSim()"><i class="ti ti-player-play"></i> Start</button>
+      <button class="btn" onclick="togglePause()"><i class="ti ti-player-pause"></i> Pauzeer</button>
+      <button class="btn" onclick="resetSim()"><i class="ti ti-refresh"></i> Reset</button>
+    </div>
+
+    <div class="section-label">Simulatie-instellingen</div>
+
+    <div class="ctrl">
+      <label>Temperatuur</label>
+      <input type="range" id="sl-temp" min="1" max="10" value="5" step="1">
+      <span class="val-out" id="out-temp">medium</span>
+    </div>
+    <div class="ctrl">
+      <label>Ligging evenwicht (K)</label>
+      <input type="range" id="sl-ligging" min="1" max="10" value="5" step="1">
+      <span class="val-out" id="out-ligging">gebalanceerd</span>
+    </div>
+
+    <div class="section-label">Verstoring (Le Chatelier) &mdash; tijdens simulatie</div>
+    <div class="btns">
+      <button class="btn amber" onclick="perturb('N2',2)"><i class="ti ti-plus"></i> +2 N₂</button>
+      <button class="btn amber" onclick="perturb('H2',6)"><i class="ti ti-plus"></i> +6 H₂</button>
+      <button class="btn amber" onclick="perturb('NH3',3)"><i class="ti ti-plus"></i> +3 NH₃</button>
+    </div>
+
+    <div class="section-label">Aantal moleculen doorheen de tijd</div>
+    <canvas id="graph-canvas" width="680" height="150"></canvas>
+    <div class="graph-caption">
+      <span style="color:#3B82C4">■ N₂</span> &nbsp;
+      <span style="color:#4FD3C4">■ H₂</span> &nbsp;
+      <span style="color:#5DCAA5">■ NH₃</span> &nbsp; — tijd →
+    </div>
+
+    <div id="log"></div>
+
+  </div><!-- /sim-wrap -->
+
+  <footer>
+    <span class="footer-brand"><strong>ChemieSim</strong> &mdash; Interactieve leeromgeving</span>
+    <span class="footer-note">Simulatie werkt volledig in de browser &mdash; geen installatie nodig.</span>
+  </footer>
+</div>
+
+<script>
+const canvas = document.getElementById('sim-canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const gCanvas = document.getElementById('graph-canvas');
+const gctx = gCanvas.getContext('2d');
+const GW = gCanvas.width, GH = gCanvas.height;
+
+const ATOM = {
+  N: { r:9, color:'#3B82C4', border:'#20507F' },
+  H: { r:6, color:'#E9E9EF', border:'#9AA1AC' },
+};
+
+// diatomic: twee atomen op een lijn door het centrum.
+// trigonal: één centraal atoom met drie atomen eromheen (voor NH3).
+const MOLSPEC = {
+  N2:  { shape:'diatomic', atoms:['N','N'], gap:16, boundingR:19, glow:'#3B82C4' },
+  H2:  { shape:'diatomic', atoms:['H','H'], gap:10, boundingR:12, glow:'#4FD3C4' },
+  NH3: { shape:'trigonal', center:'N', outer:'H', outerDist:13, boundingR:20, glow:'#5DCAA5' },
+};
+
+// vangstraal: hoe ver een 3e/4e molecuul mag staan om nog "in dezelfde botsing" te tellen
+const CAPTURE_R = 70;
+
+// "afkoelperiode" (in frames) na vorming: een vers gevormd molecuul kan dan nog niet
+// meteen opnieuw reageren, zodat het eerst de kans krijgt om weg te bewegen.
+const FORM_COOLDOWN = 20;
+
+let molecules=[], animId=null, paused=false;
+let fwdCount=0, revCount=0, windowFwd=0, windowRev=0, frameCount=0;
+let history=[], graphTimer=0;
+let logLines=[];
+
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function getSpeed(){ return 0.55+parseInt(document.getElementById('sl-temp').value)*0.3; }
+
+function computeProbabilities(){
+  const temp = parseInt(document.getElementById('sl-temp').value);
+  const ligging = parseInt(document.getElementById('sl-ligging').value);
+  const base = 0.09 + temp*0.045;
+  const factorF = 0.3 + ligging*0.14;
+  const factorR = 0.3 + (11-ligging)*0.14;
+  let pF = base*factorF, pR = base*factorR;
+  pF = Math.min(0.92, Math.max(0.015,pF));
+  pR = Math.min(0.92, Math.max(0.015,pR));
+  return {pF,pR};
+}
+
+function makeMolecule(type,x,y,cooldown){
+  const spec=MOLSPEC[type], angle=Math.random()*Math.PI*2, spd=getSpeed(), dir=Math.random()*Math.PI*2;
+  return {
+    type,
+    x: x!==undefined ? x : rnd(spec.boundingR+4,W-spec.boundingR-4),
+    y: y!==undefined ? y : rnd(spec.boundingR+4,H-spec.boundingR-4),
+    vx: Math.cos(dir)*spd,
+    vy: Math.sin(dir)*spd,
+    angle,
+    spin: rnd(-0.025,0.025),
+    flash: 0,
+    cooldown: cooldown||0
+  };
+}
+
+function resetSim(){
+  if(animId) cancelAnimationFrame(animId);
+  animId=null; paused=false; molecules=[];
+  fwdCount=0; revCount=0; windowFwd=0; windowRev=0; frameCount=0;
+  history=[]; graphTimer=0; logLines=[];
+  updateStats();
+  document.getElementById('log').textContent='Stel de beginhoeveelheden in en klik Start.';
+  drawBg(); drawGraph();
+}
+
+function startSim(){
+  if(animId) cancelAnimationFrame(animId);
+  paused=false; molecules=[]; fwdCount=0; revCount=0; windowFwd=0; windowRev=0; frameCount=0;
+  history=[]; graphTimer=0; logLines=[];
+  const nN2=parseInt(document.getElementById('sl-n2').value);
+  const nH2=parseInt(document.getElementById('sl-h2').value);
+  const nNH3=parseInt(document.getElementById('sl-nh3').value);
+  for(let i=0;i<nN2;i++) molecules.push(makeMolecule('N2'));
+  for(let i=0;i<nH2;i++) molecules.push(makeMolecule('H2'));
+  for(let i=0;i<nNH3;i++) molecules.push(makeMolecule('NH3'));
+  updateStats();
+  addLog('Start: '+nN2+'× N₂, '+nH2+'× H₂, '+nNH3+'× NH₃ in het vat.');
+  loop();
+}
+
+function togglePause(){
+  paused=!paused;
+  if(!paused && !animId) loop();
+}
+
+function perturb(type,count){
+  if(!animId){ addLog('Start eerst de simulatie voor je verstoort.'); return; }
+  for(let i=0;i<count;i++) molecules.push(makeMolecule(type));
+  const labels={N2:'N₂',H2:'H₂',NH3:'NH₃'};
+  addLog('Verstoring: +'+count+' '+labels[type]+' toegevoegd (Le Chatelier).');
+  updateStats();
+}
+
+function loop(){
+  if(paused){ animId=null; return; }
+  update(); draw();
+  graphTimer++;
+  if(graphTimer>=6){ graphTimer=0; recordHistory(); drawGraph(); }
+  animId=requestAnimationFrame(loop);
+}
+
+function update(){
+  const spd=getSpeed();
+  molecules.forEach(m=>{
+    m.x+=m.vx; m.y+=m.vy; m.angle+=m.spin;
+    const r=MOLSPEC[m.type].boundingR;
+    if(m.x<r+1){m.x=r+1;m.vx=Math.abs(m.vx);}
+    if(m.x>W-r-1){m.x=W-r-1;m.vx=-Math.abs(m.vx);}
+    if(m.y<r+1){m.y=r+1;m.vy=Math.abs(m.vy);}
+    if(m.y>H-r-1){m.y=H-r-1;m.vy=-Math.abs(m.vy);}
+    const cur=Math.hypot(m.vx,m.vy);
+    if(cur>0.01){ m.vx=(m.vx/cur)*spd; m.vy=(m.vy/cur)*spd; }
+    if(m.flash>0) m.flash--;
+    if(m.cooldown>0) m.cooldown--;
+  });
+  checkCollisions();
+  updateStats();
+
+  frameCount++;
+  if(frameCount%180===0) evaluateWindow();
+}
+
+function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+
+function checkCollisions(){
+  const {pF,pR} = computeProbabilities();
+  const toRemove=new Set();
+  for(let i=0;i<molecules.length;i++){
+    if(toRemove.has(i)) continue;
+    const a=molecules[i];
+    if (a.cooldown > 0) continue;
+    for(let j=i+1;j<molecules.length;j++){
+      if(toRemove.has(j)) continue;
+      const b=molecules[j];
+        if (b.cooldown > 0) continue;
+      const ra=MOLSPEC[a.type].boundingR, rb=MOLSPEC[b.type].boundingR;
+      if(dist(a,b)>=ra+rb+1) continue;
+      const pair=[a.type,b.type].sort().join('+');
+      const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+
+      // Heenreactie: N2 + H2 botsen -- er moeten nog 2 extra vrije H2 in de buurt zijn
+      // (samen 3 H2 + 1 N2), anders is er geen effectieve, stoichiometrisch juiste botsing.
+      if(pair==='H2+N2' && Math.random()<pF){
+        const extraH=[];
+        for(let k=0;k<molecules.length;k++){
+          if(k===i||k===j||toRemove.has(k)) continue;
+          if(molecules[k].type==='H2' && dist(molecules[k],{x:mx,y:my})<CAPTURE_R){
+            extraH.push(k);
+            if(extraH.length===2) break;
+          }
+        }
+        if(extraH.length===2){
+          toRemove.add(i); toRemove.add(j);
+          extraH.forEach(k=>toRemove.add(k));
+          const nh3a=makeMolecule('NH3',mx+rnd(-26,26),my+rnd(-26,26),FORM_COOLDOWN); nh3a.flash=25;
+          const nh3b=makeMolecule('NH3',mx+rnd(-26,26),my+rnd(-26,26),FORM_COOLDOWN); nh3b.flash=25;
+          molecules.push(nh3a,nh3b);
+          fwdCount++; windowFwd++;
+          addLog('→ Effectieve botsing: N₂ + 3 H₂ → [complex] → 2 NH₃');
+          break;
+        }
+        // niet genoeg H2 in de buurt: botsing is niet effectief, val door naar elastische terugstoot
+      }
+
+      // Terugreactie: 2 NH3 botsen -- levert exact 1 N2 + 3 H2 terug
+      if(pair==='NH3+NH3' && Math.random()<pR){
+        toRemove.add(i); toRemove.add(j);
+        const n2=makeMolecule('N2',mx+rnd(-16,16),my+rnd(-16,16),FORM_COOLDOWN); n2.flash=25;
+        const h2a=makeMolecule('H2',mx+rnd(-32,32),my+rnd(-32,32),FORM_COOLDOWN); h2a.flash=25;
+        const h2b=makeMolecule('H2',mx+rnd(-32,32),my+rnd(-32,32),FORM_COOLDOWN); h2b.flash=25;
+        const h2c=makeMolecule('H2',mx+rnd(-32,32),my+rnd(-32,32),FORM_COOLDOWN); h2c.flash=25;
+        molecules.push(n2,h2a,h2b,h2c);
+        revCount++; windowRev++;
+        addLog('← Effectieve botsing: 2 NH₃ → [complex] → N₂ + 3 H₂');
+        break;
+      }
+
+      // niet-effectieve botsing: elastisch terugstoten
+      const spd2=getSpeed();
+      const dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
+      const nx=dx/d, ny=dy/d;
+      a.vx-=nx*spd2*0.4; a.vy-=ny*spd2*0.4;
+      b.vx+=nx*spd2*0.4; b.vy+=ny*spd2*0.4;
+    }
+    if(toRemove.has(i)) break;
+  }
+  molecules=molecules.filter((_,i)=>!toRemove.has(i));
+}
+
+function drawBg(){
+  ctx.fillStyle='#0d1b2e';
+  ctx.fillRect(0,0,W,H);
+}
+
+function draw(){
+  drawBg();
+  molecules.forEach(m=>{
+    const spec=MOLSPEC[m.type];
+    const positions=[];
+
+    if(spec.shape==='diatomic'){
+      const dx=Math.cos(m.angle)*spec.gap/2, dy=Math.sin(m.angle)*spec.gap/2;
+      positions.push({ x:m.x-dx, y:m.y-dy, atom:spec.atoms[0] });
+      positions.push({ x:m.x+dx, y:m.y+dy, atom:spec.atoms[1] });
+    } else {
+      // trigonal: centraal atoom + 3 atomen eromheen op 120°
+      positions.push({ x:m.x, y:m.y, atom:spec.center });
+      for(let k=0;k<3;k++){
+        const a=m.angle+k*(Math.PI*2/3);
+        positions.push({ x:m.x+Math.cos(a)*spec.outerDist, y:m.y+Math.sin(a)*spec.outerDist, atom:spec.outer });
+      }
+    }
+
+    positions.forEach(p=>{
+      const t=ATOM[p.atom];
+      ctx.save();
+      if(m.flash>0){ ctx.shadowColor=spec.glow; ctx.shadowBlur=16; }
+      ctx.beginPath(); ctx.arc(p.x,p.y,t.r,0,Math.PI*2);
+      ctx.fillStyle=t.color; ctx.fill();
+      ctx.strokeStyle=t.border; ctx.lineWidth=1.4; ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = p.atom==='N' ? 'rgba(255,255,255,0.9)' : 'rgba(30,30,35,0.75)';
+      ctx.font='700 '+Math.max(8,t.r-2)+'px system-ui,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(p.atom,p.x,p.y);
+    });
+  });
+}
+
+function updateStats(){
+  const cnt=t=>molecules.filter(m=>m.type===t).length;
+  document.getElementById('s-n2').textContent=cnt('N2');
+  document.getElementById('s-h2').textContent=cnt('H2');
+  document.getElementById('s-nh3').textContent=cnt('NH3');
+  document.getElementById('s-fwd').textContent=fwdCount;
+  document.getElementById('s-rev').textContent=revCount;
+}
+
+function addLog(msg){
+  logLines.unshift(msg);
+  if(logLines.length>3) logLines.pop();
+  document.getElementById('log').innerHTML=logLines.join('<br>');
+}
+
+// Houdt bij hoe de heen/terugreactiesnelheid zich verhoudt
+function evaluateWindow(){
+  windowFwd=0; windowRev=0;
+}
+
+function recordHistory(){
+  const cnt=t=>molecules.filter(m=>m.type===t).length;
+  history.push({ n2:cnt('N2'), h2:cnt('H2'), nh3:cnt('NH3') });
+  if(history.length>220) history.shift();
+}
+
+function drawGraph(){
+  gctx.fillStyle='#0d1b2e';
+  gctx.fillRect(0,0,GW,GH);
+
+  if(history.length<2){
+    gctx.fillStyle='rgba(255,255,255,0.25)';
+    gctx.font='11px monospace';
+    gctx.textAlign='center';
+    gctx.fillText('Grafiek verschijnt zodra de simulatie start...',GW/2,GH/2);
+    return;
+  }
+
+  let yMax=5;
+  history.forEach(h=>{ yMax=Math.max(yMax,h.n2,h.h2,h.nh3); });
+  yMax=Math.ceil(yMax*1.15);
+
+  // gridlines
+  gctx.strokeStyle='rgba(255,255,255,0.06)';
+  gctx.lineWidth=1;
+  for(let f=0;f<=4;f++){
+    const y=GH-10-(GH-20)*(f/4);
+    gctx.beginPath(); gctx.moveTo(8,y); gctx.lineTo(GW-8,y); gctx.stroke();
+    gctx.fillStyle='rgba(255,255,255,0.3)';
+    gctx.font='9px monospace'; gctx.textAlign='left';
+    gctx.fillText(Math.round(yMax*f/4), 10, y-3);
+  }
+
+  function plot(key,color){
+    gctx.beginPath();
+    history.forEach((h,idx)=>{
+      const x=8+(GW-16)*(idx/(history.length-1));
+      const y=GH-10-(GH-20)*(h[key]/yMax);
+      if(idx===0) gctx.moveTo(x,y); else gctx.lineTo(x,y);
+    });
+    gctx.strokeStyle=color; gctx.lineWidth=2; gctx.stroke();
+  }
+  plot('n2','#3B82C4');
+  plot('h2','#4FD3C4');
+  plot('nh3','#5DCAA5');
+}
+
+const tempLabels=['','zeer traag','traag','medium-traag','medium','medium','medium-snel','snel','vrij snel','zeer snel','maximaal'];
+const liggingLabels=['','sterk bij reactanten','bij reactanten','licht bij reactanten','licht bij reactanten','gebalanceerd','gebalanceerd','licht bij product','bij product','sterk bij product','zeer sterk bij product'];
+
+document.getElementById('sl-temp').addEventListener('input',function(){
+  document.getElementById('out-temp').textContent=tempLabels[this.value]||this.value;
+  const spd=getSpeed();
+  molecules.forEach(m=>{ const cur=Math.hypot(m.vx,m.vy); if(cur>0.01){ m.vx=(m.vx/cur)*spd; m.vy=(m.vy/cur)*spd; } });
+});
+document.getElementById('sl-ligging').addEventListener('input',function(){
+  document.getElementById('out-ligging').textContent=liggingLabels[this.value]||this.value;
+});
+document.getElementById('sl-n2').addEventListener('input',function(){ document.getElementById('out-n2').textContent=this.value; });
+document.getElementById('sl-h2').addEventListener('input',function(){ document.getElementById('out-h2').textContent=this.value; });
+document.getElementById('sl-nh3').addEventListener('input',function(){ document.getElementById('out-nh3').textContent=this.value; });
+
+drawBg();
+drawGraph();
+updateStats();
+</script>
+</body>
+</html>
