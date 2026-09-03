@@ -430,6 +430,10 @@ const MOLSPEC = {
   HI: { atoms:['I','H'], gap:12, boundingR:14, glow:'#5DCAA5' },
 };
 
+// "afkoelperiode" (in frames) na vorming: een vers gevormd molecuul kan dan nog niet
+// meteen opnieuw reageren, zodat het eerst de kans krijgt om weg te bewegen.
+const FORM_COOLDOWN = 20;
+
 let molecules=[], animId=null, paused=false;
 let fwdCount=0, revCount=0, windowFwd=0, windowRev=0, frameCount=0;
 let history=[], graphTimer=0;
@@ -450,7 +454,7 @@ function computeProbabilities(){
   return {pF,pR};
 }
 
-function makeMolecule(type,x,y){
+function makeMolecule(type,x,y,cooldown){
   const spec=MOLSPEC[type], angle=Math.random()*Math.PI*2, spd=getSpeed(), dir=Math.random()*Math.PI*2;
   return {
     type,
@@ -460,7 +464,8 @@ function makeMolecule(type,x,y){
     vy: Math.sin(dir)*spd,
     angle,
     spin: rnd(-0.025,0.025),
-    flash: 0
+    flash: 0,
+    cooldown: cooldown||0
   };
 }
 
@@ -522,6 +527,7 @@ function update(){
     const cur=Math.hypot(m.vx,m.vy);
     if(cur>0.01){ m.vx=(m.vx/cur)*spd; m.vy=(m.vy/cur)*spd; }
     if(m.flash>0) m.flash--;
+    if(m.cooldown>0) m.cooldown--;
   });
   checkCollisions();
   updateStats();
@@ -538,9 +544,11 @@ function checkCollisions(){
   for(let i=0;i<molecules.length;i++){
     if(toRemove.has(i)) continue;
     const a=molecules[i];
+    if (a.cooldown > 0) continue;
     for(let j=i+1;j<molecules.length;j++){
       if(toRemove.has(j)) continue;
       const b=molecules[j];
+      if (b.cooldown > 0) continue;
       const ra=MOLSPEC[a.type].boundingR, rb=MOLSPEC[b.type].boundingR;
       if(dist(a,b)>=ra+rb+1) continue;
       const pair=[a.type,b.type].sort().join('+');
@@ -548,8 +556,8 @@ function checkCollisions(){
 
       if(pair==='H2+I2' && Math.random()<pF){
         toRemove.add(i); toRemove.add(j);
-        const hi1=makeMolecule('HI',mx+rnd(-14,14),my+rnd(-14,14)); hi1.flash=25;
-        const hi2=makeMolecule('HI',mx+rnd(-14,14),my+rnd(-14,14)); hi2.flash=25;
+        const hi1=makeMolecule('HI',mx+rnd(-14,14),my+rnd(-14,14),FORM_COOLDOWN); hi1.flash=25;
+        const hi2=makeMolecule('HI',mx+rnd(-14,14),my+rnd(-14,14),FORM_COOLDOWN); hi2.flash=25;
         molecules.push(hi1,hi2);
         fwdCount++; windowFwd++;
         addLog('→ Effectieve botsing: I₂ + H₂ → [complex] → 2 HI');
@@ -557,8 +565,8 @@ function checkCollisions(){
       }
       if(pair==='HI+HI' && Math.random()<pR){
         toRemove.add(i); toRemove.add(j);
-        const i2=makeMolecule('I2',mx+rnd(-14,14),my+rnd(-14,14)); i2.flash=25;
-        const h2=makeMolecule('H2',mx+rnd(-14,14),my+rnd(-14,14)); h2.flash=25;
+        const i2=makeMolecule('I2',mx+rnd(-14,14),my+rnd(-14,14),FORM_COOLDOWN); i2.flash=25;
+        const h2=makeMolecule('H2',mx+rnd(-14,14),my+rnd(-14,14),FORM_COOLDOWN); h2.flash=25;
         molecules.push(i2,h2);
         revCount++; windowRev++;
         addLog('← Effectieve botsing: 2 HI → [complex] → I₂ + H₂');
