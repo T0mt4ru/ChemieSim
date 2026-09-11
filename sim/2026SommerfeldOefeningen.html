@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elektronenconfiguratie — Sommerfeld oefening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.13);
+    --accent:   #5DCAA5;
+    --accent2:  #378ADD;
+    --amber:    #e6a84a;
+    --coral:    #f0806b;
+    --text:     #e6edf3;
+    --muted:    #768390;
+    --tag-bg:   rgba(93,202,165,0.12);
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  header {
+    padding: 3rem 0 2rem;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 2.5rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    text-decoration: none;
+    margin-bottom: 1.5rem;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  .site-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .site-label::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.7rem, 4.5vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+  h1 span { color: var(--accent); }
+
+  .header-desc {
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  /* progress dots */
+  .progress {
+    display: flex;
+    gap: 8px;
+    margin-top: 1.75rem;
+  }
+  .dot {
+    width: 30px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .dot.done { background: var(--accent); border-color: var(--accent); }
+  .dot.current { background: var(--accent2); border-color: var(--accent2); }
+
+  /* exercise card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .q-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .element-hero {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .element-symbol {
+    font-family: var(--mono);
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--tag-bg);
+    border: 1px solid rgba(93,202,165,0.25);
+    border-radius: 12px;
+    width: 84px;
+    height: 84px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .element-name {
+    font-size: 1.3rem;
+    font-weight: 500;
+  }
+
+  .element-z {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+  }
+
+  input[type="text"].answer-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 0.85rem 1rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"].answer-input:focus { border-color: var(--accent); }
+  input[type="text"].answer-input::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 0.6rem;
+    font-weight: 300;
+  }
+
+  .card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.75rem;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #08130f;
+  }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* analyse view */
+  .score-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .score-num {
+    font-family: var(--mono);
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .score-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .result-card.correct { border-color: rgba(93,202,165,0.35); }
+  .result-card.incorrect { border-color: rgba(240,128,107,0.3); }
+
+  .result-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .result-elem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+  }
+  .result-elem .rz { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+  .status-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 99px;
+  }
+  .status-badge.ok { background: rgba(93,202,165,0.14); color: var(--accent); }
+  .status-badge.nok { background: rgba(240,128,107,0.14); color: var(--coral); }
+
+  .answer-row {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 0.9rem;
+    line-height: 1.6;
+  }
+  .answer-row strong { color: var(--text); font-family: var(--mono); font-weight: 400; }
+
+  .diff-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .diff-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.3;
+  }
+  .diff-chip .chip-label { font-weight: 700; }
+  .diff-chip .chip-detail { font-size: 9px; opacity: 0.85; }
+
+  .diff-chip.juist { background: rgba(93,202,165,0.1); color: var(--accent); border-color: rgba(93,202,165,0.25); }
+  .diff-chip.ontbreekt { background: rgba(240,128,107,0.1); color: var(--coral); border-color: rgba(240,128,107,0.25); }
+  .diff-chip.fout-aantal { background: rgba(230,168,74,0.12); color: var(--amber); border-color: rgba(230,168,74,0.25); }
+  .diff-chip.extra { background: rgba(55,138,221,0.1); color: #7ab8ef; border-color: rgba(55,138,221,0.25); }
+  .diff-chip.onbekend { background: rgba(255,255,255,0.05); color: var(--muted); border-color: var(--border2); }
+
+  .tips-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.75rem 2rem;
+    margin: 2rem 0;
+  }
+  .tips-box h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  .tips-box ul { list-style: none; }
+  .tips-box li {
+    font-size: 13.5px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1.7;
+    padding-left: 1.4em;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+  .tips-box li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  .legend-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 2rem;
+  }
+  .legend-inline span { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .restart-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+  }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <a class="back-link" href="../index.html"><i class="ti ti-arrow-left"></i> Terug naar overzicht</a>
+    <p class="site-label">Chemie &mdash; Atoombouw</p>
+    <h1>Sommerfeld<span>Configuratie</span></h1>
+    <p class="header-desc">
+      Schrijf de elektronenconfiguratie volgens Sommerfeld (subschillen) van 5 willekeurige elementen
+      (atoomnummer 10 t.e.m. 60). Na de 5de vraag krijg je een volledige foutenanalyse.
+    </p>
+    <div class="progress" id="progress"></div>
+  </header>
+
+  <main id="main"></main>
+
+  <footer>ChemieSim &middot; Sommerfeldnotatie oefening</footer>
+</div>
+
+<script>
+/* ─── Elementgegevens Z10–Z60 ─── */
+const ELEMENTEN = [
+  {z:10,symbool:"Ne",naam:"Neon"},{z:11,symbool:"Na",naam:"Natrium"},
+  {z:12,symbool:"Mg",naam:"Magnesium"},{z:13,symbool:"Al",naam:"Aluminium"},
+  {z:14,symbool:"Si",naam:"Silicium"},{z:15,symbool:"P",naam:"Fosfor"},
+  {z:16,symbool:"S",naam:"Zwavel"},{z:17,symbool:"Cl",naam:"Chloor"},
+  {z:18,symbool:"Ar",naam:"Argon"},{z:19,symbool:"K",naam:"Kalium"},
+  {z:20,symbool:"Ca",naam:"Calcium"},{z:21,symbool:"Sc",naam:"Scandium"},
+  {z:22,symbool:"Ti",naam:"Titanium"},{z:23,symbool:"V",naam:"Vanadium"},
+  {z:24,symbool:"Cr",naam:"Chroom"},{z:25,symbool:"Mn",naam:"Mangaan"},
+  {z:26,symbool:"Fe",naam:"IJzer"},{z:27,symbool:"Co",naam:"Kobalt"},
+  {z:28,symbool:"Ni",naam:"Nikkel"},{z:29,symbool:"Cu",naam:"Koper"},
+  {z:30,symbool:"Zn",naam:"Zink"},{z:31,symbool:"Ga",naam:"Gallium"},
+  {z:32,symbool:"Ge",naam:"Germanium"},{z:33,symbool:"As",naam:"Arseen"},
+  {z:34,symbool:"Se",naam:"Selenium"},{z:35,symbool:"Br",naam:"Broom"},
+  {z:36,symbool:"Kr",naam:"Krypton"},{z:37,symbool:"Rb",naam:"Rubidium"},
+  {z:38,symbool:"Sr",naam:"Strontium"},{z:39,symbool:"Y",naam:"Yttrium"},
+  {z:40,symbool:"Zr",naam:"Zirconium"},{z:41,symbool:"Nb",naam:"Niobium"},
+  {z:42,symbool:"Mo",naam:"Molybdeen"},{z:43,symbool:"Tc",naam:"Technetium"},
+  {z:44,symbool:"Ru",naam:"Ruthenium"},{z:45,symbool:"Rh",naam:"Rhodium"},
+  {z:46,symbool:"Pd",naam:"Palladium"},{z:47,symbool:"Ag",naam:"Zilver"},
+  {z:48,symbool:"Cd",naam:"Cadmium"},{z:49,symbool:"In",naam:"Indium"},
+  {z:50,symbool:"Sn",naam:"Tin"},{z:51,symbool:"Sb",naam:"Antimoon"},
+  {z:52,symbool:"Te",naam:"Telluur"},{z:53,symbool:"I",naam:"Jood"},
+  {z:54,symbool:"Xe",naam:"Xenon"},{z:55,symbool:"Cs",naam:"Cesium"},
+  {z:56,symbool:"Ba",naam:"Barium"},{z:57,symbool:"La",naam:"Lanthaan"},
+  {z:58,symbool:"Ce",naam:"Cerium"},{z:59,symbool:"Pr",naam:"Praseodymium"},
+  {z:60,symbool:"Nd",naam:"Neodymium"}
+];
+
+/* ─── Opbouwvolgorde (regel van Madelung) ─── */
+const VOLGORDE = [
+  {n:1,l:"s",cap:2},{n:2,l:"s",cap:2},{n:2,l:"p",cap:6},
+  {n:3,l:"s",cap:2},{n:3,l:"p",cap:6},{n:4,l:"s",cap:2},
+  {n:3,l:"d",cap:10},{n:4,l:"p",cap:6},{n:5,l:"s",cap:2},
+  {n:4,l:"d",cap:10},{n:5,l:"p",cap:6},{n:6,l:"s",cap:2},
+  {n:4,l:"f",cap:14},{n:5,l:"d",cap:10},{n:6,l:"p",cap:6},{n:7,l:"s",cap:2}
+];
+const VOLGORDE_LABELS = VOLGORDE.map(s => `${s.n}${s.l}`);
+
+function genereerConfig(Z){
+  let rest = Z;
+  const result = [];
+  for(const sub of VOLGORDE){
+    if(rest <= 0) break;
+    const aantal = Math.min(sub.cap, rest);
+    result.push({label:`${sub.n}${sub.l}`, aantal});
+    rest -= aantal;
+  }
+  return result;
+}
+
+const SUPER = {0:"⁰",1:"¹",2:"²",3:"³",4:"⁴",5:"⁵",6:"⁶",7:"⁷",8:"⁸",9:"⁹"};
+function naarSuperscript(n){ return String(n).split("").map(c => SUPER[c] || c).join(""); }
+function formatteerConfig(arr){ return arr.map(s => `${s.label}${naarSuperscript(s.aantal)}`).join(" "); }
+
+/* ─── Invoer parsen ─── */
+function parseInvoer(str){
+  const supMap = {"⁰":"0","¹":"1","²":"2","³":"3","⁴":"4","⁵":"5","⁶":"6","⁷":"7","⁸":"8","⁹":"9"};
+  let g = str.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, c => supMap[c]);
+  g = g.replace(/\^/g, "");
+  const tokens = g.split(/[\s,;]+/).map(t => t.trim()).filter(Boolean);
+  const map = {};
+  for(const token of tokens){
+    const m = token.match(/^([1-7])([spdfSPDF])(\d{1,2})$/);
+    if(m){
+      const label = m[1] + m[2].toLowerCase();
+      map[label] = (map[label] || 0) + parseInt(m[3], 10);
+    } else {
+      map["?" + token] = (map["?" + token] || 0) + 1; // onherkenbaar token
+    }
+  }
+  return map;
+}
+
+/* ─── Vergelijken ─── */
+function vergelijk(correctArr, userMap){
+  const correctMap = {};
+  correctArr.forEach(s => correctMap[s.label] = s.aantal);
+  const diffs = [];
+  let juist = true;
+  const behandeld = new Set();
+
+  for(const label of VOLGORDE_LABELS){
+    const correct = correctMap[label] || 0;
+    const user = userMap[label] || 0;
+    if(correct === 0 && user === 0) continue;
+    behandeld.add(label);
+    let status;
+    if(user === 0) status = "ontbreekt";
+    else if(correct === 0) status = "extra";
+    else if(user !== correct) status = "fout-aantal";
+    else status = "juist";
+    if(status !== "juist") juist = false;
+    diffs.push({label, correct, user, status});
+  }
+  for(const label of Object.keys(userMap)){
+    if(label.startsWith("?")){
+      diffs.push({label: label.slice(1), correct: 0, user: userMap[label], status: "onbekend"});
+      juist = false;
+    } else if(!behandeld.has(label)){
+      diffs.push({label, correct: 0, user: userMap[label], status: "onbekend"});
+      juist = false;
+    }
+  }
+  return {diffs, juist};
+}
+
+/* ─── Staat ─── */
+let vragen = [];
+let antwoorden = [];
+let huidige = 0;
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function nieuweRonde(){
+  vragen = shuffle(ELEMENTEN).slice(0, 5);
+  antwoorden = new Array(5).fill("");
+  huidige = 0;
+  renderProgress();
+  renderOefening();
+}
+
+function renderProgress(mode){
+  const el = document.getElementById("progress");
+  el.innerHTML = vragen.map((_, i) => {
+    let cls = "dot";
+    if(mode === "analyse" || i < huidige) cls += " done";
+    else if(i === huidige) cls += " current";
+    return `<div class="${cls}"></div>`;
+  }).join("");
+}
+
+function renderOefening(){
+  renderProgress();
+  const el = vragen[huidige];
+  const main = document.getElementById("main");
+  const laatste = huidige === vragen.length - 1;
+  main.innerHTML = `
+    <div class="card">
+      <p class="q-label">Vraag ${huidige + 1} van ${vragen.length}</p>
+      <div class="element-hero">
+        <div class="element-symbol">${el.symbool}</div>
+        <div>
+          <div class="element-name">${el.naam}</div>
+          <div class="element-z">Atoomnummer Z = ${el.z}</div>
+        </div>
+      </div>
+      <label class="field-label" for="antwoord">Elektronenconfiguratie (Sommerfeld)</label>
+      <input type="text" class="answer-input" id="antwoord" autocomplete="off"
+             placeholder="bv. 1s2 2s2 2p6 3s2 3p6 4s2 3d6" value="${antwoorden[huidige]}">
+      <p class="hint">Scheid de subschillen met een spatie, bv. <em>3d10</em> of <em>3d¹⁰</em>.</p>
+      <div class="card-actions">
+        <button class="btn btn-primary" id="volgende-btn">
+          ${laatste ? "Bekijk analyse" : "Volgende vraag"} <i class="ti ti-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  const input = document.getElementById("antwoord");
+  const btn = document.getElementById("volgende-btn");
+  const updateBtn = () => { btn.disabled = input.value.trim().length === 0; };
+  input.addEventListener("input", updateBtn);
+  updateBtn();
+  input.focus();
+
+  btn.addEventListener("click", () => {
+    antwoorden[huidige] = input.value.trim();
+    if(laatste){
+      renderAnalyse();
+    } else {
+      huidige++;
+      renderOefening();
+    }
+  });
+  input.addEventListener("keydown", e => {
+    if(e.key === "Enter" && !btn.disabled) btn.click();
+  });
+}
+
+function renderAnalyse(){
+  renderProgress("analyse");
+  const resultaten = vragen.map((el, i) => {
+    const correctArr = genereerConfig(el.z);
+    const userMap = parseInvoer(antwoorden[i]);
+    const {diffs, juist} = vergelijk(correctArr, userMap);
+    return {el, correctArr, ruweInvoer: antwoorden[i], diffs, juist};
+  });
+
+  const aantalJuist = resultaten.filter(r => r.juist).length;
+
+  /* fouten aggregeren voor tips */
+  const foutTypes = {ontbreekt: 0, "fout-aantal": 0, extra: 0, onbekend: 0};
+  const ontbrekendeLabels = new Set();
+  resultaten.forEach(r => r.diffs.forEach(d => {
+    if(d.status !== "juist"){
+      foutTypes[d.status] = (foutTypes[d.status] || 0) + 1;
+      if(d.status === "ontbreekt") ontbrekendeLabels.add(d.label);
+    }
+  }));
+
+  const tips = [];
+  if(aantalJuist === resultaten.length){
+    tips.push("Uitstekend! Alle 5 configuraties zijn volledig correct volgens de regel van Madelung.");
+  } else {
+    if(foutTypes["ontbreekt"] > 0){
+      tips.push(`Je vergat in totaal ${foutTypes["ontbreekt"]} subschil(len). Loop de opbouwvolgorde na: ...4s → 3d → 4p → 5s..., het is gemakkelijk om een subschil zoals 3d of 4f over te slaan.`);
+    }
+    if(foutTypes["fout-aantal"] > 0){
+      tips.push(`Bij ${foutTypes["fout-aantal"]} subschil(len) klopte het aantal elektronen niet. Onthoud de maximale capaciteit: s = 2, p = 6, d = 10, f = 14.`);
+    }
+    if(foutTypes["extra"] > 0){
+      tips.push(`Je voegde ${foutTypes["extra"]} subschil(len) te veel toe. Tel het totaal aantal elektronen na en stop zodra je bij het atoomnummer bent.`);
+    }
+    if(foutTypes["onbekend"] > 0){
+      tips.push(`Sommige invoer kon niet herkend worden als een geldige subschil (bv. typfout of niet-bestaande combinatie zoals "2d"). Controleer de schrijfwijze: cijfer + letter + aantal, bv. 3p6.`);
+    }
+    if(ontbrekendeLabels.has("3d")){
+      tips.push("Specifiek: 3d wordt pas ingevuld ná 4s, maar staat wél vóór 4p in de opbouwvolgorde — een veelgemaakte valkuil.");
+    }
+  }
+
+  const legendHTML = `
+    <div class="legend-inline">
+      <span><span class="legend-dot" style="background:var(--accent)"></span> Juist</span>
+      <span><span class="legend-dot" style="background:var(--coral)"></span> Ontbreekt</span>
+      <span><span class="legend-dot" style="background:var(--amber)"></span> Fout aantal</span>
+      <span><span class="legend-dot" style="background:#7ab8ef"></span> Te veel</span>
+      <span><span class="legend-dot" style="background:var(--muted)"></span> Onbekend</span>
+    </div>
+  `;
+
+  const kaartenHTML = resultaten.map((r, i) => {
+    const chips = r.diffs.map(d => {
+      let detail = "";
+      if(d.status === "ontbreekt") detail = `correct: ${d.correct}`;
+      else if(d.status === "fout-aantal") detail = `jij: ${d.user} / correct: ${d.correct}`;
+      else if(d.status === "extra") detail = `jij: ${d.user}, hoort er niet bij`;
+      else if(d.status === "onbekend") detail = `niet herkend`;
+      else detail = `${d.user}`;
+      return `<div class="diff-chip ${d.status}">
+                <span class="chip-label">${d.label}</span>
+                <span class="chip-detail">${detail}</span>
+              </div>`;
+    }).join("");
+
+    return `
+      <div class="result-card ${r.juist ? "correct" : "incorrect"}">
+        <div class="result-top">
+          <div class="result-elem">${r.el.symbool} — ${r.el.naam} <span class="rz">Z=${r.el.z}</span></div>
+          <span class="status-badge ${r.juist ? "ok" : "nok"}">${r.juist ? "Correct" : "Fout"}</span>
+        </div>
+        <div class="answer-row">Jouw invoer: <strong>${r.ruweInvoer || "(leeg)"}</strong></div>
+        <div class="answer-row">Correcte configuratie: <strong>${formatteerConfig(r.correctArr)}</strong></div>
+        <div class="diff-grid">${chips}</div>
+      </div>
+    `;
+  }).join("");
+
+  const main = document.getElementById("main");
+  main.innerHTML = `
+    <div class="score-banner">
+      <div>
+        <div class="score-num">${aantalJuist} / ${resultaten.length}</div>
+        <div class="score-sub">Correct beantwoord</div>
+      </div>
+      <i class="ti ti-atom-2" style="font-size:2.4rem;color:var(--accent);opacity:0.6"></i>
+    </div>
+
+    ${legendHTML}
+    ${kaartenHTML}
+
+    <div class="tips-box">
+      <h3><i class="ti ti-bulb"></i> Feedback</h3>
+      <ul>${tips.map(t => `<li>${t}</li>`).join("")}</ul>
+    </div>
+
+    <div class="restart-row">
+      <button class="btn btn-secondary" id="restart-btn">
+        <i class="ti ti-refresh"></i> Nieuwe set van 5 elementen
+      </button>
+    </div>
+  `;
+  document.getElementById("restart-btn").addEventListener("click", nieuweRonde);
+}
+
+nieuweRonde();
+</script>
+</body>
+</html>
