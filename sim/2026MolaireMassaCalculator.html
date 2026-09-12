@@ -739,15 +739,13 @@ function calculateMolarMass(formula) {
   const parts = formula.split(/[.·*]/);
   const mainFormula = parts[0].trim();
   const hydratePart = parts.length > 1 ? parts[1].trim() : '';
-  const molarMassH2O = 18.0150;
 
   if (hydratePart) {
-    const m = hydratePart.match(/^(\d+)H2O$/);
+    const m = hydratePart.match(/^(\d*)H2O$/);
     if (m) {
-      const mult = parseInt(m[1], 10);
+      const mult = m[1] ? parseInt(m[1], 10) : 1;
       elementsCount['H'] = (elementsCount['H'] || 0) + mult * 2;
       elementsCount['O'] = (elementsCount['O'] || 0) + mult * 1;
-      totalMass += mult * molarMassH2O;
     } else {
       throw new Error(`Ongeldige hydraatformule: ${hydratePart}. Verwacht formaat: nH2O`);
     }
