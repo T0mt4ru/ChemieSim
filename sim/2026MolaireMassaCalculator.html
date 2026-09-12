@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Molaire Massa Calculator &amp; Periodiek Systeem — ChemieSim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.13);
+    --accent:   #5DCAA5;
+    --accent2:  #378ADD;
+    --text:     #e6edf3;
+    --muted:    #768390;
+    --tag-bg:   rgba(93,202,165,0.12);
+    --tag-text: #5DCAA5;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  /* ── header ── */
+  header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border2); margin-bottom: 2rem; }
+
+  .back-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  .site-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .site-label::before { content: ''; display: inline-block; width: 24px; height: 1px; background: var(--accent); }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  h1 span { color: var(--accent); }
+
+  .header-desc { font-size: 1rem; font-weight: 300; color: var(--muted); max-width: 560px; line-height: 1.7; }
+
+  /* ── tabs ── */
+  .tab-nav {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border2);
+  }
+  .tab-btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 0.85rem 1.1rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .tab-panel { display: none; animation: fadeUp 0.35s ease both; }
+  .tab-panel.active { display: block; }
+
+  h2.section-heading {
+    font-family: var(--mono);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* ── periodic table ── */
+  .ptable-scroll { overflow-x: auto; padding-bottom: 0.5rem; }
+  .ptable-grid { display: grid; grid-template-columns: 28px repeat(18, minmax(38px, 1fr)); gap: 3px; width: max-content; }
+  .group-label, .period-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .period-label { height: 46px; }
+
+  .el-tile {
+    position: relative;
+    height: 46px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: transform 0.12s, border-color 0.12s;
+    padding: 2px;
+  }
+  .el-tile:hover { transform: translateY(-2px); border-color: var(--accent); z-index: 2; }
+  .el-tile.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .el-tile .el-num { position: absolute; top: 2px; left: 3px; font-family: var(--mono); font-size: 7px; opacity: 0.65; }
+  .el-tile .el-sym { font-family: var(--mono); font-weight: 700; font-size: 13px; line-height: 1.1; }
+  .el-tile .el-mass { font-size: 6.5px; opacity: 0.75; line-height: 1; }
+  .el-placeholder {
+    height: 46px; border-radius: 6px; border: 1px dashed var(--border2);
+    background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--muted); font-family: var(--mono); font-size: 9px; transition: border-color 0.2s, color 0.2s;
+  }
+  .el-placeholder:hover { border-color: var(--accent); color: var(--accent); }
+  .el-empty { height: 46px; }
+
+  .type-niet-metaal      { background: rgba(55,138,221,0.14); border-color: rgba(55,138,221,0.35); }
+  .type-edelgas          { background: rgba(167,139,250,0.14); border-color: rgba(167,139,250,0.35); }
+  .type-alkalimetaal     { background: rgba(248,113,113,0.14); border-color: rgba(248,113,113,0.35); }
+  .type-aardalkalimetaal { background: rgba(230,168,74,0.14); border-color: rgba(230,168,74,0.35); }
+  .type-metaloïde        { background: rgba(93,202,165,0.14); border-color: rgba(93,202,165,0.4); }
+  .type-halogeen         { background: rgba(45,212,191,0.14); border-color: rgba(45,212,191,0.35); }
+  .type-hoofdgroepmetaal { background: rgba(156,163,175,0.14); border-color: rgba(156,163,175,0.35); }
+  .type-overgangsmetaal  { background: rgba(234,179,8,0.14);  border-color: rgba(234,179,8,0.35); }
+  .type-lanthanide       { background: rgba(244,114,182,0.14); border-color: rgba(244,114,182,0.35); }
+  .type-actinide         { background: rgba(129,140,248,0.14); border-color: rgba(129,140,248,0.35); }
+  .type-onbekend         { background: var(--surface2); border-color: var(--border2); }
+
+  .f-row { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.25rem 0 2rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 3px; border: 1px solid var(--border2); }
+
+  .el-detail {
+    margin-top: 1.5rem; padding: 1.25rem 1.5rem; background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .el-detail h3 { font-family: var(--mono); font-size: 16px; color: var(--text); margin-bottom: 0.4rem; }
+  .el-detail p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .btn {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    background: var(--tag-bg); color: var(--accent); border: 1px solid rgba(93,202,165,0.3);
+    padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: rgba(93,202,165,0.22); border-color: var(--accent); }
+  .btn.secondary { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .btn.secondary:hover { border-color: var(--border2); background: var(--surface); }
+  .btn.block { width: 100%; text-align: center; padding: 0.8rem 1rem; font-size: 12px; }
+
+  /* ── calculator ── */
+  .calc-block { margin-bottom: 1.75rem; position: relative; }
+  .calc-label { font-size: 13px; color: var(--muted); margin-bottom: 0.6rem; display: block; }
+  .calc-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 0.75rem 1rem; font-family: var(--mono); font-size: 14px; color: var(--text); margin-bottom: 0.75rem;
+  }
+  .calc-input:focus { outline: none; border-color: var(--accent); }
+  .calc-input::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .divider { display: flex; align-items: center; gap: 0.75rem; margin: 1.75rem 0; }
+  .divider .line { flex: 1; height: 1px; background: var(--border2); }
+  .divider span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); }
+
+  .suggest-list {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: -0.5rem;
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; overflow: hidden; max-height: 220px; overflow-y: auto;
+  }
+  .suggest-item { padding: 0.6rem 1rem; font-family: var(--mono); font-size: 13px; cursor: pointer; color: var(--text); }
+  .suggest-item:hover { background: var(--tag-bg); color: var(--accent); }
+
+  .result-mass {
+    margin-top: 1rem; padding: 1.5rem; background: var(--tag-bg); border: 1px solid rgba(93,202,165,0.25);
+    border-radius: 12px; text-align: center;
+  }
+  .result-mass .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+  .result-mass .value { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--accent); }
+
+  .result-error {
+    margin-top: 1rem; padding: 1rem 1.25rem; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 10px; color: #f3a3a3; font-size: 13px;
+  }
+
+  .breakdown { margin-top: 2rem; padding: 1.5rem; background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; }
+  .pies { display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; margin-bottom: 1.5rem; }
+  .pie-block { display: flex; flex-direction: column; align-items: center; gap: 1rem; flex: 1; min-width: 220px; }
+  .pie-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+  .pie-legend { display: flex; flex-direction: column; gap: 4px; width: 100%; max-width: 220px; }
+  .pie-legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); }
+  .pie-legend-row .sw { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .pie-legend-row .pct { margin-left: auto; font-family: var(--mono); color: var(--muted); }
+
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); }
+  table.data-table th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  table.data-table td { color: var(--text); }
+  table.data-table td:first-child { font-family: var(--mono); font-weight: 700; color: var(--accent); }
+
+  footer {
+    margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .footer-brand { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .footer-brand strong { color: var(--accent); }
+  .footer-note { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  header { animation: fadeUp 0.5s ease both; }
+
+  @media (max-width: 640px) {
+    .el-tile .el-mass { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <a class="back-link" href="../index.html"><i class="ti ti-arrow-left" aria-hidden="true"></i> Terug naar overzicht</a>
+    <p class="site-label">Chemie &mdash; Rekenen &amp; naslag</p>
+    <h1>Periodiek Systeem &amp; <span>Molaire Massa</span></h1>
+    <p class="header-desc">
+      Blader door het periodiek systeem der elementen of bereken de molaire massa van een stof — op brutoformule
+      of op triviale naam. Klik op een element om het meteen naar de calculator te sturen.
+    </p>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="periodiek"><i class="ti ti-grid-dots" aria-hidden="true"></i> Periodiek Systeem</button>
+    <button class="tab-btn" data-tab="calculator"><i class="ti ti-calculator" aria-hidden="true"></i> Molaire Massa Calculator</button>
+  </nav>
+
+  <!-- ═══════════ PERIODIEK SYSTEEM ═══════════ -->
+  <section class="tab-panel active" id="tab-periodiek">
+    <h2 class="section-heading">Klik op een element voor details</h2>
+    <div class="ptable-scroll">
+      <div id="ptable-main" class="ptable-grid"></div>
+    </div>
+
+    <div id="lanthanide-row" style="margin-top:1.25rem;">
+      <p class="calc-label" style="margin-bottom:0.5rem;">Lanthaniden (La&ndash;Lu)</p>
+      <div class="ptable-scroll"><div id="ptable-lanth" class="ptable-grid" style="grid-template-columns: repeat(15, minmax(38px,1fr));"></div></div>
+    </div>
+    <div id="actinide-row" style="margin-top:1rem;">
+      <p class="calc-label" style="margin-bottom:0.5rem;">Actiniden (Ac&ndash;Lr)</p>
+      <div class="ptable-scroll"><div id="ptable-actin" class="ptable-grid" style="grid-template-columns: repeat(15, minmax(38px,1fr));"></div></div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="el-detail" id="el-detail" style="display:none;">
+      <div>
+        <h3 id="ed-name"></h3>
+        <p id="ed-info"></p>
+      </div>
+      <button class="btn" id="ed-to-calc">Gebruik in calculator <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+    </div>
+  </section>
+
+  <!-- ═══════════ CALCULATOR ═══════════ -->
+  <section class="tab-panel" id="tab-calculator">
+
+    <div class="calc-block">
+      <label class="calc-label">Zoek op triviale naam</label>
+      <input class="calc-input" id="trivial-input" placeholder="bv. water, zoutzuur, ureum" autocomplete="off">
+      <div class="suggest-list" id="suggest-list" style="display:none;"></div>
+      <button class="btn block" id="btn-trivial">Zoek triviale naam</button>
+    </div>
+
+    <div class="divider"><div class="line"></div><span>OF</span><div class="line"></div></div>
+
+    <div class="calc-block">
+      <label class="calc-label">Voer brutoformule in</label>
+      <input class="calc-input" id="formula-input" placeholder="bv. H2O, C6H12O6, Ca(OH)2" autocomplete="off">
+      <button class="btn block" id="btn-formula" style="background:rgba(55,138,221,0.14); color:#7ab8ef; border-color:rgba(55,138,221,0.3);">Bereken molaire massa</button>
+    </div>
+
+    <div id="result-mass" class="result-mass" style="display:none;">
+      <div class="label">Molaire massa</div>
+      <div class="value" id="result-mass-value"></div>
+    </div>
+    <div id="result-error" class="result-error" style="display:none;"></div>
+
+    <div id="breakdown" class="breakdown" style="display:none;">
+      <h2 class="section-heading" style="text-align:center;">Elementaire samenstelling</h2>
+      <div class="pies">
+        <div class="pie-block">
+          <span class="pie-title">Atoompercentage</span>
+          <div id="pie-atomic"></div>
+          <div class="pie-legend" id="legend-atomic"></div>
+        </div>
+        <div class="pie-block">
+          <span class="pie-title">Massapercentage</span>
+          <div id="pie-mass"></div>
+          <div class="pie-legend" id="legend-mass"></div>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Atoom</th><th>Aantal</th><th>Bijdrage (g/mol)</th><th>Atoom %</th><th>Massa %</th></tr></thead>
+        <tbody id="breakdown-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span class="footer-brand"><strong>ChemieSim</strong>  Interactieve leeromgeving</span>
+    <span class="footer-note">Werkt volledig in de browser &mdash; geen installatie nodig.</span>
+  </footer>
+
+</div>
+
+<script>
+/* ═══════════════════════ DATA ═══════════════════════ */
+const elementsData = [
+  { symbol: 'H',  name: 'Waterstof',      atomicNumber: 1,    atomicMass: 1.008,    group: 1,   period: 1, type: 'niet-metaal' },
+  { symbol: 'He', name: 'Helium',         atomicNumber: 2,    atomicMass: 4.003,    group: 18,  period: 1, type: 'edelgas' },
+  { symbol: 'Li', name: 'Lithium',        atomicNumber: 3,    atomicMass: 6.941,    group: 1,   period: 2, type: 'alkalimetaal' },
+  { symbol: 'Be', name: 'Beryllium',      atomicNumber: 4,    atomicMass: 9.012,    group: 2,   period: 2, type: 'aardalkalimetaal' },
+  { symbol: 'B',  name: 'Boor',           atomicNumber: 5,    atomicMass: 10.811,   group: 13,  period: 2, type: 'metaloïde' },
+  { symbol: 'C',  name: 'Koolstof',       atomicNumber: 6,    atomicMass: 12.011,   group: 14,  period: 2, type: 'niet-metaal' },
+  { symbol: 'N',  name: 'Stikstof',       atomicNumber: 7,    atomicMass: 14.007,   group: 15,  period: 2, type: 'niet-metaal' },
+  { symbol: 'O',  name: 'Zuurstof',       atomicNumber: 8,    atomicMass: 15.999,   group: 16,  period: 2, type: 'niet-metaal' },
+  { symbol: 'F',  name: 'Fluor',          atomicNumber: 9,    atomicMass: 18.998,   group: 17,  period: 2, type: 'halogeen' },
+  { symbol: 'Ne', name: 'Neon',           atomicNumber: 10,   atomicMass: 20.180,   group: 18,  period: 2, type: 'edelgas' },
+  { symbol: 'Na', name: 'Natrium',        atomicNumber: 11,   atomicMass: 22.990,   group: 1,   period: 3, type: 'alkalimetaal' },
+  { symbol: 'Mg', name: 'Magnesium',      atomicNumber: 12,   atomicMass: 24.305,   group: 2,   period: 3, type: 'aardalkalimetaal' },
+  { symbol: 'Al', name: 'Aluminium',      atomicNumber: 13,   atomicMass: 26.982,   group: 13,  period: 3, type: 'hoofdgroepmetaal' },
+  { symbol: 'Si', name: 'Silicium',       atomicNumber: 14,   atomicMass: 28.085,   group: 14,  period: 3, type: 'metaloïde' },
+  { symbol: 'P',  name: 'Fosfor',         atomicNumber: 15,   atomicMass: 30.974,   group: 15,  period: 3, type: 'niet-metaal' },
+  { symbol: 'S',  name: 'Zwavel',         atomicNumber: 16,   atomicMass: 32.060,   group: 16,  period: 3, type: 'niet-metaal' },
+  { symbol: 'Cl', name: 'Chloor',         atomicNumber: 17,   atomicMass: 35.453,   group: 17,  period: 3, type: 'halogeen' },
+  { symbol: 'Ar', name: 'Argon',          atomicNumber: 18,   atomicMass: 39.948,   group: 18,  period: 3, type: 'edelgas' },
+  { symbol: 'K',  name: 'Kalium',         atomicNumber: 19,   atomicMass: 39.098,   group: 1,   period: 4, type: 'alkalimetaal' },
+  { symbol: 'Ca', name: 'Calcium',        atomicNumber: 20,   atomicMass: 40.078,   group: 2,   period: 4, type: 'aardalkalimetaal' },
+  { symbol: 'Sc', name: 'Scandium',       atomicNumber: 21,   atomicMass: 44.956,   group: 3,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Ti', name: 'Titanium',       atomicNumber: 22,   atomicMass: 47.867,   group: 4,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'V',  name: 'Vanadium',       atomicNumber: 23,   atomicMass: 50.942,   group: 5,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Cr', name: 'Chroom',         atomicNumber: 24,   atomicMass: 51.996,   group: 6,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Mn', name: 'Mangaan',        atomicNumber: 25,   atomicMass: 54.938,   group: 7,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Fe', name: 'IJzer',          atomicNumber: 26,   atomicMass: 55.845,   group: 8,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Co', name: 'Kobalt',         atomicNumber: 27,   atomicMass: 58.933,   group: 9,   period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Ni', name: 'Nikkel',         atomicNumber: 28,   atomicMass: 58.693,   group: 10,  period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Cu', name: 'Koper',          atomicNumber: 29,   atomicMass: 63.546,   group: 11,  period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Zn', name: 'Zink',           atomicNumber: 30,   atomicMass: 65.380,   group: 12,  period: 4, type: 'overgangsmetaal' },
+  { symbol: 'Ga', name: 'Gallium',        atomicNumber: 31,   atomicMass: 69.723,   group: 13,  period: 4, type: 'hoofdgroepmetaal' },
+  { symbol: 'Ge', name: 'Germanium',      atomicNumber: 32,   atomicMass: 72.630,   group: 14,  period: 4, type: 'metaloïde' },
+  { symbol: 'As', name: 'Arseen',         atomicNumber: 33,   atomicMass: 74.922,   group: 15,  period: 4, type: 'metaloïde' },
+  { symbol: 'Se', name: 'Seleen',         atomicNumber: 34,   atomicMass: 78.971,   group: 16,  period: 4, type: 'niet-metaal' },
+  { symbol: 'Br', name: 'Broom',          atomicNumber: 35,   atomicMass: 79.904,   group: 17,  period: 4, type: 'halogeen' },
+  { symbol: 'Kr', name: 'Krypton',        atomicNumber: 36,   atomicMass: 83.798,   group: 18,  period: 4, type: 'edelgas' },
+  { symbol: 'Rb', name: 'Rubidium',       atomicNumber: 37,   atomicMass: 85.468,   group: 1,   period: 5, type: 'alkalimetaal' },
+  { symbol: 'Sr', name: 'Strontium',      atomicNumber: 38,   atomicMass: 87.620,   group: 2,   period: 5, type: 'aardalkalimetaal' },
+  { symbol: 'Y',  name: 'Yttrium',        atomicNumber: 39,   atomicMass: 88.906,   group: 3,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Zr', name: 'Zirkonium',      atomicNumber: 40,   atomicMass: 91.224,   group: 4,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Nb', name: 'Niobium',        atomicNumber: 41,   atomicMass: 92.906,   group: 5,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Mo', name: 'Molybdeen',      atomicNumber: 42,   atomicMass: 95.950,   group: 6,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Tc', name: 'Technetium',     atomicNumber: 43,   atomicMass: 98.000,   group: 7,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Ru', name: 'Ruthenium',      atomicNumber: 44,   atomicMass: 101.070,  group: 8,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Rh', name: 'Rhodium',        atomicNumber: 45,   atomicMass: 102.906,  group: 9,   period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Pd', name: 'Palladium',      atomicNumber: 46,   atomicMass: 106.420,  group: 10,  period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Ag', name: 'Zilver',         atomicNumber: 47,   atomicMass: 107.868,  group: 11,  period: 5, type: 'overgangsmetaal' },
+  { symbol: 'Cd', name: 'Cadmium',        atomicNumber: 48,   atomicMass: 112.414,  group: 12,  period: 5, type: 'overgangsmetaal' },
+  { symbol: 'In', name: 'Indium',         atomicNumber: 49,   atomicMass: 114.818,  group: 13,  period: 5, type: 'hoofdgroepmetaal' },
+  { symbol: 'Sn', name: 'Tin',            atomicNumber: 50,   atomicMass: 118.710,  group: 14,  period: 5, type: 'hoofdgroepmetaal' },
+  { symbol: 'Sb', name: 'Antimoon',       atomicNumber: 51,   atomicMass: 121.760,  group: 15,  period: 5, type: 'metaloïde' },
+  { symbol: 'Te', name: 'Telluur',        atomicNumber: 52,   atomicMass: 127.600,  group: 16,  period: 5, type: 'metaloïde' },
+  { symbol: 'I',  name: 'Jood',           atomicNumber: 53,   atomicMass: 126.904,  group: 17,  period: 5, type: 'halogeen' },
+  { symbol: 'Xe', name: 'Xenon',          atomicNumber: 54,   atomicMass: 131.293,  group: 18,  period: 5, type: 'edelgas' },
+  { symbol: 'Cs', name: 'Cesium',         atomicNumber: 55,   atomicMass: 132.905,  group: 1,   period: 6, type: 'alkalimetaal' },
+  { symbol: 'Ba', name: 'Barium',         atomicNumber: 56,   atomicMass: 137.327,  group: 2,   period: 6, type: 'aardalkalimetaal' },
+  { symbol: 'La', name: 'Lanthaan',       atomicNumber: 57,   atomicMass: 138.905,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Ce', name: 'Cerium',         atomicNumber: 58,   atomicMass: 140.116,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Pr', name: 'Praseodymium',   atomicNumber: 59,   atomicMass: 140.908,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Nd', name: 'Neodymium',      atomicNumber: 60,   atomicMass: 144.242,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Pm', name: 'Promethium',     atomicNumber: 61,   atomicMass: 145.000,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Sm', name: 'Samarium',       atomicNumber: 62,   atomicMass: 150.360,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Eu', name: 'Europium',       atomicNumber: 63,   atomicMass: 151.964,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Gd', name: 'Gadolinium',     atomicNumber: 64,   atomicMass: 157.250,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Tb', name: 'Terbium',        atomicNumber: 65,   atomicMass: 158.925,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Dy', name: 'Dysprosium',     atomicNumber: 66,   atomicMass: 162.500,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Ho', name: 'Holmium',        atomicNumber: 67,   atomicMass: 164.930,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Er', name: 'Erbium',         atomicNumber: 68,   atomicMass: 167.259,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Tm', name: 'Thulium',        atomicNumber: 69,   atomicMass: 168.934,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Yb', name: 'Ytterbium',      atomicNumber: 70,   atomicMass: 173.054,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Lu', name: 'Lutetium',       atomicNumber: 71,   atomicMass: 174.967,  group: 3,   period: 6, type: 'lanthanide' },
+  { symbol: 'Hf', name: 'Hafnium',        atomicNumber: 72,   atomicMass: 178.490,  group: 4,   period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Ta', name: 'Tantaal',        atomicNumber: 73,   atomicMass: 180.948,  group: 5,   period: 6, type: 'overgangsmetaal' },
+  { symbol: 'W',  name: 'Wolfraam',       atomicNumber: 74,   atomicMass: 183.840,  group: 6,   period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Re', name: 'Renium',         atomicNumber: 75,   atomicMass: 186.207,  group: 7,   period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Os', name: 'Osmium',         atomicNumber: 76,   atomicMass: 190.230,  group: 8,   period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Ir', name: 'Iridium',        atomicNumber: 77,   atomicMass: 192.217,  group: 9,   period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Pt', name: 'Platina',        atomicNumber: 78,   atomicMass: 195.084,  group: 10,  period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Au', name: 'Goud',           atomicNumber: 79,   atomicMass: 196.967,  group: 11,  period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Hg', name: 'Kwik',           atomicNumber: 80,   atomicMass: 200.592,  group: 12,  period: 6, type: 'overgangsmetaal' },
+  { symbol: 'Tl', name: 'Thallium',       atomicNumber: 81,   atomicMass: 204.383,  group: 13,  period: 6, type: 'hoofdgroepmetaal' },
+  { symbol: 'Pb', name: 'Lood',           atomicNumber: 82,   atomicMass: 207.200,  group: 14,  period: 6, type: 'hoofdgroepmetaal' },
+  { symbol: 'Bi', name: 'Bismut',         atomicNumber: 83,   atomicMass: 208.980,  group: 15,  period: 6, type: 'hoofdgroepmetaal' },
+  { symbol: 'Po', name: 'Polonium',       atomicNumber: 84,   atomicMass: 209.000,  group: 16,  period: 6, type: 'metaloïde' },
+  { symbol: 'At', name: 'Astatium',       atomicNumber: 85,   atomicMass: 210.000,  group: 17,  period: 6, type: 'halogeen' },
+  { symbol: 'Rn', name: 'Radon',          atomicNumber: 86,   atomicMass: 222.000,  group: 18,  period: 6, type: 'edelgas' },
+  { symbol: 'Fr', name: 'Francium',       atomicNumber: 87,   atomicMass: 223.000,  group: 1,   period: 7, type: 'alkalimetaal' },
+  { symbol: 'Ra', name: 'Radium',         atomicNumber: 88,   atomicMass: 226.000,  group: 2,   period: 7, type: 'aardalkalimetaal' },
+  { symbol: 'Ac', name: 'Actinium',       atomicNumber: 89,   atomicMass: 227.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Th', name: 'Thorium',        atomicNumber: 90,   atomicMass: 232.038,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Pa', name: 'Protactinium',   atomicNumber: 91,   atomicMass: 231.036,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'U',  name: 'Uranium',        atomicNumber: 92,   atomicMass: 238.029,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Np', name: 'Neptunium',      atomicNumber: 93,   atomicMass: 237.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Pu', name: 'Plutonium',      atomicNumber: 94,   atomicMass: 244.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Am', name: 'Americium',      atomicNumber: 95,   atomicMass: 243.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Cm', name: 'Curium',         atomicNumber: 96,   atomicMass: 247.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Bk', name: 'Berkelium',      atomicNumber: 97,   atomicMass: 247.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Cf', name: 'Californium',    atomicNumber: 98,   atomicMass: 251.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Es', name: 'Einsteinium',    atomicNumber: 99,   atomicMass: 252.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Fm', name: 'Fermium',        atomicNumber: 100,  atomicMass: 257.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Md', name: 'Mendelevium',    atomicNumber: 101,  atomicMass: 258.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'No', name: 'Nobelium',       atomicNumber: 102,  atomicMass: 259.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Lr', name: 'Lawrencium',     atomicNumber: 103,  atomicMass: 262.000,  group: 3,   period: 7, type: 'actinide' },
+  { symbol: 'Rf', name: 'Rutherfordium',  atomicNumber: 104,  atomicMass: 267.000,  group: 4,   period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Db', name: 'Dubnium',        atomicNumber: 105,  atomicMass: 268.000,  group: 5,   period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Sg', name: 'Seaborgium',     atomicNumber: 106,  atomicMass: 271.000,  group: 6,   period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Bh', name: 'Bohrium',        atomicNumber: 107,  atomicMass: 272.000,  group: 7,   period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Hs', name: 'Hassium',        atomicNumber: 108,  atomicMass: 277.000,  group: 8,   period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Mt', name: 'Meitnerium',     atomicNumber: 109,  atomicMass: 276.000,  group: 9,   period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Ds', name: 'Darmstadtium',   atomicNumber: 110,  atomicMass: 281.000,  group: 10,  period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Rg', name: 'Roentgenium',    atomicNumber: 111,  atomicMass: 282.000,  group: 11,  period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Cn', name: 'Copernicium',    atomicNumber: 112,  atomicMass: 285.000,  group: 12,  period: 7, type: 'overgangsmetaal' },
+  { symbol: 'Nh', name: 'Nihonium',       atomicNumber: 113,  atomicMass: 286.000,  group: 13,  period: 7, type: 'onbekend' },
+  { symbol: 'Fl', name: 'Flerovium',      atomicNumber: 114,  atomicMass: 289.000,  group: 14,  period: 7, type: 'onbekend' },
+  { symbol: 'Mc', name: 'Moscovium',      atomicNumber: 115,  atomicMass: 290.000,  group: 15,  period: 7, type: 'onbekend' },
+  { symbol: 'Lv', name: 'Livermorium',    atomicNumber: 116,  atomicMass: 293.000,  group: 16,  period: 7, type: 'onbekend' },
+  { symbol: 'Ts', name: 'Tennessine',     atomicNumber: 117,  atomicMass: 294.000,  group: 17,  period: 7, type: 'onbekend' },
+  { symbol: 'Og', name: 'Oganesson',      atomicNumber: 118,  atomicMass: 294.000,  group: 18,  period: 7, type: 'onbekend' }
+];
+
+const atomicMasses = elementsData.reduce((acc, el) => { acc[el.symbol] = el.atomicMass; return acc; }, {});
+
+const rawTrivialNamesData = {
+  "AgNO3": ["helse steen"],
+  "Al2O3": ["aluinaarde"],
+  "CCl4": ["tetrachloormethaan", "tetra"],
+  "C2H4O3": ["glycolzuur"],
+  "(C2H5)2O": ["ether"],
+  "C4H6O4": ["barnsteenzuur"],
+  "C4H6O5": ["appelzuur"],
+  "C6H4(CH3)2": ["xyleen"],
+  "C6H5OH": ["fenol", "phenol", "hydroxybenzeen"],
+  "C6H5CH-CHCOOH": ["kaneelzuur"],
+  "C6H5CH3": ["tolueen", "methylbenzeen"],
+  "C6H5(CH3)2": ["dimethylbenzeen", "orthodimethylbenzeen", "ortho-dimethylbenzeen", "metadimethylbenzeen", "meta-dimethylbenzeen", "paradimethylbenzeen", "para-dimethylbenzeen", "xyleen", "orthoxyleen", "ortho-xyleen", "metaxyleen", "meta-xyleen", "paraxyleen", "para-xyleen"],
+  "C6H5OCH3": ["anisool"],
+  "C6H5OCH2CH3": ["fenetool"],
+  "HO-(O=)C-CH2-C(C(=O)-OH)(-OH)-CH2-C(=O)-OH": ["citroenzuur"],
+  "C7H6O2": ["benzoëzuur"],
+  "C8H6O4": ["ftaalzuur"],
+  "C8H8O3": ["amandelzuur"],
+  "C9H8O": ["kaneelaldehyde"],
+  "C9H10": ["indaan"],
+  "C10H14": ["dureen"],
+  "CHCl3": ["trichloormethaan", "chloroform", "tri"],
+  "CHI3": ["trijoodmethaan", "jodoform"],
+  "CH3CH2COOH": ["propionzuur"],
+  "CH3CH2-OH": ["alcohol"],
+  "CH3-(CH2)2-C(=O)OH": ["boterzuur"],
+  "CH3(CH2)16-C(=O)OH": ["stearinezuur"],
+  "CH3(CH=CH(CH2)7C(=O)OH": ["oleïnezuur", "oliezuur"],
+  "CH3C(=O)C2H5": ["mek"],
+  "CH3C(=O)CH3": ["aceton", "dimethylketon", "dmk"],
+  "CH3C(=O)OH": ["azijnzuur"],
+  "CH3OH": ["houtgeest", "methylalcohol", "methyl alcohol", "houtalcohol", "hout alcohol", "wood alcohol"],
+  "CH4": ["methaan", "aardgas"],
+  "(CH3)2CHCH2CH3": ["isopentaan"],
+  "(CH3)2CHOH": ["ipa", "isopropanol", "isopropyl alcohol"],
+  "(CH3)2CHOHCHOH(CH3)2": ["pinacol"],
+  "(CH3)3C-CH2CH(CH3)2": ["iso-octaan"],
+  "(CH3)3CC(O)CH3": ["pinacolon"],
+  "(CH3)3CH": ["isobutaan"],
+  "(COOH)2": ["oxaalzuur"],
+  "(CH3)3C(CH2)C(CH3)(CH2)": ["tmp1", "dib", "di-isobutyleen", "diisobutyleen"],
+  "(C6H4OH)(CH3)2C(CH2)(CH3)3C": ["pto", "ptop", "para-tertairoctylfenol", "paratertairoctylfenol"],
+  "CaC": ["calciumcarbide", "carbid"],
+  "CaCO3": ["kalk"],
+  "CaF2": ["calciumfluoride", "fluoriet"],
+  "CaO": ["ongebluste kalk"],
+  "Ca(OH)2": ["gebluste kalk"],
+  "CaSO4": ["gips"],
+  "CuSO4": ["kopervitriool"],
+  "Fe(NH4)2(SO4)2.6H2O": ["mohr's zout"],
+  "H2CO3": ["koolzuurhoudend water", "koolzuur"],
+  "H2N(CH2)4NH2": ["putrescine"],
+  "H2N(CH2)5NH2": ["cadaverine"],
+  "H2NC(O)NH2": ["diaminomethanal", "ureum"],
+  "H2O": ["water", "aqua"],
+  "H2SO3": ["zwavelig zuur", "zwaveligzuur"],
+  "H2SO4": ["vitriool", "zwavelzuur"],
+  "H3PO3": ["fosforig zuur", "fosforigzuur"],
+  "H3PO4": ["fosforzuur"],
+  "HCOOH": ["mierenzuur"],
+  "HCl": ["waterstofchloride", "geest van zout", "zoutgeest", "zoutzuur"],
+  "Hg2Cl2": ["kwik(I)chloride", "calomel"],
+  "HgS": ["kwik(II)sulfide", "vermiljoen"],
+  "HNO2": ["salpeterig zuur"],
+  "HNO3": ["salpeterzuur"],
+  "HOC6H4COOH": ["salicylzuur"],
+  "HO(CH2)2OH": ["glycol"],
+  "HOCH2CH(OH)CH2OH": ["glycerol"],
+  "HOOC(CHOH)2COOH": ["wijnsteenzuur"],
+  "K2CO3": ["potas"],
+  "KCl": ["kaliumchloride", "sylviet"],
+  "K3[Fe(CN)6]": ["rood bloedloogzout"],
+  "K4Fe(CN)6.3H2O": ["geel bloedloogzout"],
+  "KAl(SO4)2.12H2O": ["aluin"],
+  "KOH": ["kaliloog"],
+  "MgSO4": ["bitterzout"],
+  "NH3": ["ammoniak", "ammonia"],
+  "NH4Cl": ["salmiak", "salmiakzout"],
+  "NH4HCO3": ["vlugzout"],
+  "Na2B4O7.10H2O": ["borax"],
+  "Na2CO3.10H2O": ["soda"],
+  "NaCl": ["natriumchloride", "keukenzout", "zout", "tafelzout", "steenzout", "haliet"],
+  "NaClO": ["bleekwater"],
+  "NaHCO3": ["bakpoeder", "dubbelkoolzure soda", "zuiveringszout"],
+  "NaOH": ["caustic", "caustische soda", "natronloog"],
+  "O3": ["ozon"],
+  "O=CHCH3": ["ethanal"]
+};
+
+const trivialNames = {};
+for (const formula in rawTrivialNamesData) {
+  rawTrivialNamesData[formula].forEach(name => { trivialNames[name.toLowerCase()] = formula; });
+}
+const allTrivialNames = Object.values(rawTrivialNamesData).flat();
+
+const TYPE_LABELS = {
+  'niet-metaal': 'Niet-metaal', 'edelgas': 'Edelgas', 'alkalimetaal': 'Alkalimetaal',
+  'aardalkalimetaal': 'Aardalkalimetaal', 'metaloïde': 'Metalloïde', 'halogeen': 'Halogeen',
+  'hoofdgroepmetaal': 'Hoofdgroepmetaal', 'overgangsmetaal': 'Overgangsmetaal',
+  'lanthanide': 'Lanthanide', 'actinide': 'Actinide', 'onbekend': 'Onbekend'
+};
+
+/* ═══════════════════════ TABS ═══════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => setTab(btn.dataset.tab));
+});
+function setTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+
+/* ═══════════════════════ PERIODIC TABLE RENDER ═══════════════════════ */
+function elTileHTML(el) {
+  return `<div class="el-tile type-${el.type}" data-symbol="${el.symbol}" title="${el.name}">
+    <span class="el-num">${el.atomicNumber}</span>
+    <span class="el-sym">${el.symbol}</span>
+    <span class="el-mass">${el.atomicMass.toFixed(2)}</span>
+  </div>`;
+}
+
+function renderMainTable() {
+  const main = elementsData.filter(el => !(el.atomicNumber >= 57 && el.atomicNumber <= 71) && !(el.atomicNumber >= 89 && el.atomicNumber <= 103));
+  const grid = Array.from({ length: 7 }, () => Array(18).fill(null));
+  main.forEach(el => { grid[el.period - 1][el.group - 1] = el; });
+  if (!grid[5][2]) grid[5][2] = { placeholder: 'lanthanide-row', display: '57-71', linkText: 'La-Lu' };
+  if (!grid[6][2]) grid[6][2] = { placeholder: 'actinide-row', display: '89-103', linkText: 'Ac-Lr' };
+
+  let html = `<div class="group-label"></div>`;
+  for (let g = 1; g <= 18; g++) html += `<div class="group-label">${g}</div>`;
+
+  grid.forEach((row, rIdx) => {
+    html += `<div class="period-label">${rIdx + 1}</div>`;
+    row.forEach(cell => {
+      if (!cell) { html += `<div class="el-empty"></div>`; return; }
+      if (cell.placeholder) {
+        html += `<div class="el-placeholder" data-scroll="${cell.placeholder}">
+          <span>${cell.display}</span><span>${cell.linkText}</span>
+        </div>`;
+      } else {
+        html += elTileHTML(cell);
+      }
+    });
+  });
+  document.getElementById('ptable-main').innerHTML = html;
+}
+
+function renderSeriesRow(containerId, from, to) {
+  const els = elementsData.filter(el => el.atomicNumber >= from && el.atomicNumber <= to);
+  document.getElementById(containerId).innerHTML = els.map(elTileHTML).join('');
+}
+
+function renderLegend() {
+  const seen = new Set();
+  let html = '';
+  elementsData.forEach(el => {
+    if (seen.has(el.type)) return;
+    seen.add(el.type);
+    html += `<div class="legend-item"><span class="legend-swatch type-${el.type}"></span>${TYPE_LABELS[el.type]}</div>`;
+  });
+  document.getElementById('legend').innerHTML = html;
+}
+
+function showElementDetail(symbol) {
+  const el = elementsData.find(e => e.symbol === symbol);
+  if (!el) return;
+  document.querySelectorAll('.el-tile').forEach(t => t.classList.toggle('selected', t.dataset.symbol === symbol));
+  document.getElementById('ed-name').textContent = `${el.name} (${el.symbol})`;
+  document.getElementById('ed-info').textContent = `Atoomnummer ${el.atomicNumber} · Atoommassa ${el.atomicMass.toFixed(3)} u · ${TYPE_LABELS[el.type]} · Groep ${el.group}, Periode ${el.period}`;
+  document.getElementById('el-detail').style.display = 'flex';
+  document.getElementById('ed-to-calc').onclick = () => {
+    document.getElementById('formula-input').value = el.symbol;
+    setTab('calculator');
+    calculateFromFormula(el.symbol);
+  };
+}
+
+document.addEventListener('click', e => {
+  const tile = e.target.closest('.el-tile');
+  if (tile) { showElementDetail(tile.dataset.symbol); return; }
+  const ph = e.target.closest('.el-placeholder');
+  if (ph) { document.getElementById(ph.dataset.scroll).scrollIntoView({ behavior: 'smooth' }); }
+});
+
+renderMainTable();
+renderSeriesRow('ptable-lanth', 57, 71);
+renderSeriesRow('ptable-actin', 89, 103);
+renderLegend();
+
+/* ═══════════════════════ FORMULA PARSER ═══════════════════════ */
+function calculateMolarMass(formula) {
+  if (!formula) return { mass: 0, composition: {} };
+  let totalMass = 0;
+  const elementsCount = {};
+
+  function getCanonical(sym) { return atomicMasses[sym] ? sym : null; }
+
+  function parseSegment(segment, multiplier) {
+    let i = 0;
+    while (i < segment.length) {
+      const char = segment[i];
+      if (char === '-' || char === '=' || /\s/.test(char)) { i++; continue; }
+
+      if (char === '(') {
+        let open = 1, j = i + 1;
+        const subStart = j;
+        while (j < segment.length && open > 0) {
+          if (segment[j] === '(') open++;
+          else if (segment[j] === ')') open--;
+          j++;
+        }
+        if (open > 0) throw new Error(`Ongeldige formule: ongepaard haakje in "${segment.substring(i)}".`);
+        const subFormula = segment.substring(subStart, j - 1);
+        i = j;
+        let numStr = '';
+        while (i < segment.length && /\d/.test(segment[i])) { numStr += segment[i]; i++; }
+        const subMult = numStr ? parseInt(numStr, 10) : 1;
+        parseSegment(subFormula, multiplier * subMult);
+      } else if (/[A-Z]/.test(char)) {
+        let symbol = char; i++;
+        if (i < segment.length && /[a-z]/.test(segment[i])) { symbol += segment[i]; i++; }
+        const canon = getCanonical(symbol);
+        if (!canon) throw new Error(`Onbekend element of ongeldig symbool: "${symbol}". Let op hoofdlettergevoeligheid!`);
+        let numStr = '';
+        while (i < segment.length && /\d/.test(segment[i])) { numStr += segment[i]; i++; }
+        const count = numStr ? parseInt(numStr, 10) : 1;
+        elementsCount[canon] = (elementsCount[canon] || 0) + count * multiplier;
+      } else {
+        throw new Error(`Onbekend element of ongeldig symbool: "${char}". Let op hoofdlettergevoeligheid!`);
+      }
+    }
+  }
+
+  const parts = formula.split(/[.·*]/);
+  const mainFormula = parts[0].trim();
+  const hydratePart = parts.length > 1 ? parts[1].trim() : '';
+  const molarMassH2O = 18.0150;
+
+  if (hydratePart) {
+    const m = hydratePart.match(/^(\d+)H2O$/);
+    if (m) {
+      const mult = parseInt(m[1], 10);
+      elementsCount['H'] = (elementsCount['H'] || 0) + mult * 2;
+      elementsCount['O'] = (elementsCount['O'] || 0) + mult * 1;
+      totalMass += mult * molarMassH2O;
+    } else {
+      throw new Error(`Ongeldige hydraatformule: ${hydratePart}. Verwacht formaat: nH2O`);
+    }
+  }
+
+  parseSegment(mainFormula, 1);
+  for (const el in elementsCount) totalMass += atomicMasses[el] * elementsCount[el];
+
+  if (Object.keys(elementsCount).length === 0 && mainFormula.trim() !== '') {
+    throw new Error('Kon formule niet parsen of resulteerde in 0 massa. Controleer haakjes en symbolen.');
+  }
+  return { mass: totalMass, composition: elementsCount };
+}
+
+/* ═══════════════════════ CALCULATOR UI ═══════════════════════ */
+const PIE_COLORS = ['#5DCAA5', '#378ADD', '#e6a84a', '#f87171', '#a78bfa', '#2dd4bf', '#f472b6', '#eab308'];
+
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function arcPath(cx, cy, r, start, end) {
+  const s = polarToCartesian(cx, cy, r, end);
+  const e = polarToCartesian(cx, cy, r, start);
+  const largeArc = end - start <= 180 ? 0 : 1;
+  return `M ${cx} ${cy} L ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y} Z`;
+}
+function buildPie(data) {
+  const total = data.reduce((a, d) => a + d.value, 0);
+  const cx = 90, cy = 90, r = 80;
+  let angle = 0;
+  let svg = `<svg width="180" height="180" viewBox="0 0 180 180">`;
+  data.forEach((d, idx) => {
+    const slice = (d.value / total) * 360;
+    if (slice > 0) {
+      svg += `<path d="${arcPath(cx, cy, r, angle, angle + slice)}" fill="${PIE_COLORS[idx % PIE_COLORS.length]}" stroke="#0d1117" stroke-width="1.5"><title>${d.name}: ${d.pct}%</title></path>`;
+    }
+    angle += slice;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+function buildLegend(data) {
+  return data.map((d, idx) =>
+    `<div class="pie-legend-row"><span class="sw" style="background:${PIE_COLORS[idx % PIE_COLORS.length]}"></span>${d.name}<span class="pct">${d.pct}%</span></div>`
+  ).join('');
+}
+
+function calculateFromFormula(formula) {
+  const resultMassBox = document.getElementById('result-mass');
+  const resultErrorBox = document.getElementById('result-error');
+  const breakdownBox = document.getElementById('breakdown');
+  resultMassBox.style.display = 'none';
+  resultErrorBox.style.display = 'none';
+  breakdownBox.style.display = 'none';
+
+  try {
+    const result = calculateMolarMass(formula);
+    if (result.mass > 0) {
+      document.getElementById('result-mass-value').textContent = result.mass.toFixed(4) + ' g/mol';
+      resultMassBox.style.display = 'block';
+
+      let totalAtoms = 0;
+      for (const s in result.composition) totalAtoms += result.composition[s];
+
+      const rows = [];
+      for (const symbol in result.composition) {
+        const count = result.composition[symbol];
+        const mass = atomicMasses[symbol];
+        const contribution = count * mass;
+        rows.push({
+          name: symbol, count,
+          contribution: contribution.toFixed(3),
+          atomicPct: ((count / totalAtoms) * 100).toFixed(2),
+          massPct: ((contribution / result.mass) * 100).toFixed(2),
+          atomicValue: count, massValue: contribution
+        });
+      }
+
+      document.getElementById('breakdown-body').innerHTML = rows.map(r =>
+        `<tr><td>${r.name}</td><td>${r.count}</td><td>${r.contribution}</td><td>${r.atomicPct}%</td><td>${r.massPct}%</td></tr>`
+      ).join('');
+
+      const atomicData = rows.map(r => ({ name: r.name, value: r.atomicValue, pct: r.atomicPct }));
+      const massData = rows.map(r => ({ name: r.name, value: r.massValue, pct: r.massPct }));
+      document.getElementById('pie-atomic').innerHTML = buildPie(atomicData);
+      document.getElementById('pie-mass').innerHTML = buildPie(massData);
+      document.getElementById('legend-atomic').innerHTML = buildLegend(atomicData);
+      document.getElementById('legend-mass').innerHTML = buildLegend(massData);
+
+      breakdownBox.style.display = 'block';
+    } else if (formula.trim() !== '') {
+      throw new Error('Kon formule niet parsen of resulteerde in 0 massa.');
+    }
+  } catch (e) {
+    resultErrorBox.textContent = e.message;
+    resultErrorBox.style.display = 'block';
+  }
+}
+
+document.getElementById('btn-formula').addEventListener('click', () => {
+  calculateFromFormula(document.getElementById('formula-input').value);
+});
+document.getElementById('formula-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') calculateFromFormula(e.target.value);
+});
+
+function lookupTrivialName(name) {
+  const normalized = name.trim().toLowerCase();
+  const formula = trivialNames[normalized];
+  const resultErrorBox = document.getElementById('result-error');
+  if (formula) {
+    document.getElementById('formula-input').value = formula;
+    calculateFromFormula(formula);
+  } else if (name.trim() !== '') {
+    document.getElementById('result-mass').style.display = 'none';
+    document.getElementById('breakdown').style.display = 'none';
+    resultErrorBox.textContent = `Triviale naam "${name}" niet gevonden.`;
+    resultErrorBox.style.display = 'block';
+  } else {
+    resultErrorBox.textContent = 'Voer een triviale naam in.';
+    resultErrorBox.style.display = 'block';
+  }
+}
+document.getElementById('btn-trivial').addEventListener('click', () => {
+  lookupTrivialName(document.getElementById('trivial-input').value);
+});
+document.getElementById('trivial-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { document.getElementById('suggest-list').style.display = 'none'; lookupTrivialName(e.target.value); }
+});
+
+const trivialInput = document.getElementById('trivial-input');
+const suggestList = document.getElementById('suggest-list');
+trivialInput.addEventListener('input', e => {
+  const val = e.target.value.toLowerCase();
+  if (!val) { suggestList.style.display = 'none'; return; }
+  const matches = allTrivialNames.filter(n => n.toLowerCase().startsWith(val)).slice(0, 6);
+  if (matches.length === 0) { suggestList.style.display = 'none'; return; }
+  suggestList.innerHTML = matches.map(m => `<div class="suggest-item">${m}</div>`).join('');
+  suggestList.style.display = 'block';
+});
+suggestList.addEventListener('mousedown', e => {
+  const item = e.target.closest('.suggest-item');
+  if (!item) return;
+  trivialInput.value = item.textContent;
+  suggestList.style.display = 'none';
+  lookupTrivialName(item.textContent);
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#trivial-input') && !e.target.closest('#suggest-list')) suggestList.style.display = 'none';
+});
+</script>
+</body>
+</html>
