@@ -503,101 +503,31 @@ const elementsData = [
 
 const atomicMasses = elementsData.reduce((acc, el) => { acc[el.symbol] = el.atomicMass; return acc; }, {});
 
-const rawTrivialNamesData = {
-  "AgNO3": ["helse steen"],
-  "Al2O3": ["aluinaarde"],
-  "CCl4": ["tetrachloormethaan", "tetra"],
-  "C2H4O3": ["glycolzuur"],
-  "(C2H5)2O": ["ether"],
-  "C4H6O4": ["barnsteenzuur"],
-  "C4H6O5": ["appelzuur"],
-  "C6H4(CH3)2": ["xyleen"],
-  "C6H5OH": ["fenol", "phenol", "hydroxybenzeen"],
-  "C6H5CH-CHCOOH": ["kaneelzuur"],
-  "C6H5CH3": ["tolueen", "methylbenzeen"],
-  "C6H5(CH3)2": ["dimethylbenzeen", "orthodimethylbenzeen", "ortho-dimethylbenzeen", "metadimethylbenzeen", "meta-dimethylbenzeen", "paradimethylbenzeen", "para-dimethylbenzeen", "xyleen", "orthoxyleen", "ortho-xyleen", "metaxyleen", "meta-xyleen", "paraxyleen", "para-xyleen"],
-  "C6H5OCH3": ["anisool"],
-  "C6H5OCH2CH3": ["fenetool"],
-  "HO-(O=)C-CH2-C(C(=O)-OH)(-OH)-CH2-C(=O)-OH": ["citroenzuur"],
-  "C7H6O2": ["benzoëzuur"],
-  "C8H6O4": ["ftaalzuur"],
-  "C8H8O3": ["amandelzuur"],
-  "C9H8O": ["kaneelaldehyde"],
-  "C9H10": ["indaan"],
-  "C10H14": ["dureen"],
-  "CHCl3": ["trichloormethaan", "chloroform", "tri"],
-  "CHI3": ["trijoodmethaan", "jodoform"],
-  "CH3CH2COOH": ["propionzuur"],
-  "CH3CH2-OH": ["alcohol"],
-  "CH3-(CH2)2-C(=O)OH": ["boterzuur"],
-  "CH3(CH2)16-C(=O)OH": ["stearinezuur"],
-  "CH3(CH=CH(CH2)7C(=O)OH": ["oleïnezuur", "oliezuur"],
-  "CH3C(=O)C2H5": ["mek"],
-  "CH3C(=O)CH3": ["aceton", "dimethylketon", "dmk"],
-  "CH3C(=O)OH": ["azijnzuur"],
-  "CH3OH": ["houtgeest", "methylalcohol", "methyl alcohol", "houtalcohol", "hout alcohol", "wood alcohol"],
-  "CH4": ["methaan", "aardgas"],
-  "(CH3)2CHCH2CH3": ["isopentaan"],
-  "(CH3)2CHOH": ["ipa", "isopropanol", "isopropyl alcohol"],
-  "(CH3)2CHOHCHOH(CH3)2": ["pinacol"],
-  "(CH3)3C-CH2CH(CH3)2": ["iso-octaan"],
-  "(CH3)3CC(O)CH3": ["pinacolon"],
-  "(CH3)3CH": ["isobutaan"],
-  "(COOH)2": ["oxaalzuur"],
-  "(CH3)3C(CH2)C(CH3)(CH2)": ["tmp1", "dib", "di-isobutyleen", "diisobutyleen"],
-  "(C6H4OH)(CH3)2C(CH2)(CH3)3C": ["pto", "ptop", "para-tertairoctylfenol", "paratertairoctylfenol"],
-  "CaC": ["calciumcarbide", "carbid"],
-  "CaCO3": ["kalk"],
-  "CaF2": ["calciumfluoride", "fluoriet"],
-  "CaO": ["ongebluste kalk"],
-  "Ca(OH)2": ["gebluste kalk"],
-  "CaSO4": ["gips"],
-  "CuSO4": ["kopervitriool"],
-  "Fe(NH4)2(SO4)2.6H2O": ["mohr's zout"],
-  "H2CO3": ["koolzuurhoudend water", "koolzuur"],
-  "H2N(CH2)4NH2": ["putrescine"],
-  "H2N(CH2)5NH2": ["cadaverine"],
-  "H2NC(O)NH2": ["diaminomethanal", "ureum"],
-  "H2O": ["water", "aqua"],
-  "H2SO3": ["zwavelig zuur", "zwaveligzuur"],
-  "H2SO4": ["vitriool", "zwavelzuur"],
-  "H3PO3": ["fosforig zuur", "fosforigzuur"],
-  "H3PO4": ["fosforzuur"],
-  "HCOOH": ["mierenzuur"],
-  "HCl": ["waterstofchloride", "geest van zout", "zoutgeest", "zoutzuur"],
-  "Hg2Cl2": ["kwik(I)chloride", "calomel"],
-  "HgS": ["kwik(II)sulfide", "vermiljoen"],
-  "HNO2": ["salpeterig zuur"],
-  "HNO3": ["salpeterzuur"],
-  "HOC6H4COOH": ["salicylzuur"],
-  "HO(CH2)2OH": ["glycol"],
-  "HOCH2CH(OH)CH2OH": ["glycerol"],
-  "HOOC(CHOH)2COOH": ["wijnsteenzuur"],
-  "K2CO3": ["potas"],
-  "KCl": ["kaliumchloride", "sylviet"],
-  "K3[Fe(CN)6]": ["rood bloedloogzout"],
-  "K4Fe(CN)6.3H2O": ["geel bloedloogzout"],
-  "KAl(SO4)2.12H2O": ["aluin"],
-  "KOH": ["kaliloog"],
-  "MgSO4": ["bitterzout"],
-  "NH3": ["ammoniak", "ammonia"],
-  "NH4Cl": ["salmiak", "salmiakzout"],
-  "NH4HCO3": ["vlugzout"],
-  "Na2B4O7.10H2O": ["borax"],
-  "Na2CO3.10H2O": ["soda"],
-  "NaCl": ["natriumchloride", "keukenzout", "zout", "tafelzout", "steenzout", "haliet"],
-  "NaClO": ["bleekwater"],
-  "NaHCO3": ["bakpoeder", "dubbelkoolzure soda", "zuiveringszout"],
-  "NaOH": ["caustic", "caustische soda", "natronloog"],
-  "O3": ["ozon"],
-  "O=CHCH3": ["ethanal"]
-};
+let trivialNames = {};
+let allTrivialNames = [];
+let trivialNamesLoaded = false;
 
-const trivialNames = {};
-for (const formula in rawTrivialNamesData) {
-  rawTrivialNamesData[formula].forEach(name => { trivialNames[name.toLowerCase()] = formula; });
-}
-const allTrivialNames = Object.values(rawTrivialNamesData).flat();
+fetch('data/2026TrivialeNamen.json')
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(data => {
+    const names = {};
+    for (const formula in data) {
+      data[formula].forEach(name => { names[name.toLowerCase()] = formula; });
+    }
+    trivialNames = names;
+    allTrivialNames = Object.values(data).flat();
+    trivialNamesLoaded = true;
+  })
+  .catch(err => {
+    console.error('Kon triviale namen niet laden:', err);
+    const input = document.getElementById('trivial-input');
+    const btn = document.getElementById('btn-trivial');
+    if (input) { input.disabled = true; input.placeholder = 'Niet beschikbaar — kon data/2026TrivialeNamen.json niet laden'; }
+    if (btn) btn.disabled = true;
+  });
 
 const TYPE_LABELS = {
   'niet-metaal': 'Niet-metaal', 'edelgas': 'Edelgas', 'alkalimetaal': 'Alkalimetaal',
@@ -854,9 +784,16 @@ document.getElementById('formula-input').addEventListener('keydown', e => {
 });
 
 function lookupTrivialName(name) {
+  const resultErrorBox = document.getElementById('result-error');
+  if (!trivialNamesLoaded) {
+    document.getElementById('result-mass').style.display = 'none';
+    document.getElementById('breakdown').style.display = 'none';
+    resultErrorBox.textContent = 'De triviale namen worden nog geladen, probeer het zo opnieuw.';
+    resultErrorBox.style.display = 'block';
+    return;
+  }
   const normalized = name.trim().toLowerCase();
   const formula = trivialNames[normalized];
-  const resultErrorBox = document.getElementById('result-error');
   if (formula) {
     document.getElementById('formula-input').value = formula;
     calculateFromFormula(formula);
