@@ -322,6 +322,22 @@
   }
   .answer-row strong { color: var(--text); font-family: var(--mono); font-weight: 400; }
 
+  .exception-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: rgba(230,168,74,0.12);
+    border: 1px solid rgba(230,168,74,0.3);
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin-bottom: 0.9rem;
+  }
+
   .diff-grid {
     display: flex;
     flex-wrap: wrap;
@@ -417,7 +433,9 @@
     <h1>Sommerfeld<span>Configuratie</span></h1>
     <p class="header-desc">
       Schrijf de elektronenconfiguratie volgens Sommerfeld (subschillen) van 5 willekeurige elementen
-      (atoomnummer 10 t.e.m. 60). Na de 5de vraag krijg je een volledige foutenanalyse.
+      (atoomnummer 10 t.e.m. 60). Let op: enkele elementen wijken af van de opbouwregel omwille van
+      extra stabiliteit van halfgevulde of volledig gevulde d-subschillen. Na de 5de vraag krijg je
+      een volledige foutenanalyse.
     </p>
     <div class="progress" id="progress"></div>
   </header>
@@ -468,7 +486,71 @@ const VOLGORDE = [
 ];
 const VOLGORDE_LABELS = VOLGORDE.map(s => `${s.n}${s.l}`);
 
+/*
+ * ─── Uitzonderingen op de regel van Madelung ───
+ * Een half-gevulde (d5) of volledig gevulde (d10) subschil is extra stabiel,
+ * waardoor een elektron uit de ns-subschil "springt" naar de (n-1)d-subschil.
+ * Dit zijn de erkende uitzonderingen binnen Z = 10 t.e.m. 60.
+ * Elke config is expliciet opgegeven als lijst van {label, aantal}.
+ */
+const UITZONDERINGEN = {
+  24: [ // Cr: [Ar] 3d5 4s1  (i.p.v. 3d4 4s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:1},
+    {label:"3d",aantal:5}
+  ],
+  29: [ // Cu: [Ar] 3d10 4s1  (i.p.v. 3d9 4s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:1},
+    {label:"3d",aantal:10}
+  ],
+  41: [ // Nb: [Kr] 4d4 5s1  (i.p.v. 4d3 5s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},{label:"5s",aantal:1},
+    {label:"4d",aantal:4}
+  ],
+  42: [ // Mo: [Kr] 4d5 5s1  (i.p.v. 4d4 5s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},{label:"5s",aantal:1},
+    {label:"4d",aantal:5}
+  ],
+  44: [ // Ru: [Kr] 4d7 5s1  (i.p.v. 4d6 5s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},{label:"5s",aantal:1},
+    {label:"4d",aantal:7}
+  ],
+  45: [ // Rh: [Kr] 4d8 5s1  (i.p.v. 4d7 5s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},{label:"5s",aantal:1},
+    {label:"4d",aantal:8}
+  ],
+  46: [ // Pd: [Kr] 4d10 5s0  (i.p.v. 4d8 5s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},
+    {label:"4d",aantal:10}
+  ],
+  47: [ // Ag: [Kr] 4d10 5s1  (i.p.v. 4d9 5s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},{label:"5s",aantal:1},
+    {label:"4d",aantal:10}
+  ],
+  57: [ // La: [Xe] 5d1 6s2  (i.p.v. 4f1 6s2)
+    {label:"1s",aantal:2},{label:"2s",aantal:2},{label:"2p",aantal:6},
+    {label:"3s",aantal:2},{label:"3p",aantal:6},{label:"4s",aantal:2},
+    {label:"3d",aantal:10},{label:"4p",aantal:6},{label:"5s",aantal:2},
+    {label:"4d",aantal:10},{label:"5p",aantal:6},{label:"6s",aantal:2},
+    {label:"5d",aantal:1}
+  ]
+};
+
 function genereerConfig(Z){
+  if(UITZONDERINGEN[Z]) return UITZONDERINGEN[Z].map(s => ({...s}));
   let rest = Z;
   const result = [];
   for(const sub of VOLGORDE){
@@ -586,7 +668,7 @@ function renderOefening(){
       <label class="field-label" for="antwoord">Elektronenconfiguratie (Sommerfeld)</label>
       <input type="text" class="answer-input" id="antwoord" autocomplete="off"
              placeholder="bv. 1s2 2s2 2p6 3s2 3p6 4s2 3d6" value="${antwoorden[huidige]}">
-      <p class="hint">Scheid de subschillen met een spatie, bv. <em>3d10</em> of <em>3d¹⁰</em>.</p>
+      <p class="hint">Scheid de subschillen met een spatie, bv. <em>3d10</em> of <em>3d¹⁰</em>. Denk aan mogelijke uitzonderingen op de opbouwregel!</p>
       <div class="card-actions">
         <button class="btn btn-primary" id="volgende-btn">
           ${laatste ? "Bekijk analyse" : "Volgende vraag"} <i class="ti ti-arrow-right"></i>
@@ -621,7 +703,7 @@ function renderAnalyse(){
     const correctArr = genereerConfig(el.z);
     const userMap = parseInvoer(antwoorden[i]);
     const {diffs, juist} = vergelijk(correctArr, userMap);
-    return {el, correctArr, ruweInvoer: antwoorden[i], diffs, juist};
+    return {el, correctArr, ruweInvoer: antwoorden[i], diffs, juist, isUitzondering: !!UITZONDERINGEN[el.z]};
   });
 
   const aantalJuist = resultaten.filter(r => r.juist).length;
@@ -629,16 +711,20 @@ function renderAnalyse(){
   /* fouten aggregeren voor tips */
   const foutTypes = {ontbreekt: 0, "fout-aantal": 0, extra: 0, onbekend: 0};
   const ontbrekendeLabels = new Set();
-  resultaten.forEach(r => r.diffs.forEach(d => {
-    if(d.status !== "juist"){
-      foutTypes[d.status] = (foutTypes[d.status] || 0) + 1;
-      if(d.status === "ontbreekt") ontbrekendeLabels.add(d.label);
-    }
-  }));
+  let uitzonderingGemist = false;
+  resultaten.forEach(r => {
+    r.diffs.forEach(d => {
+      if(d.status !== "juist"){
+        foutTypes[d.status] = (foutTypes[d.status] || 0) + 1;
+        if(d.status === "ontbreekt") ontbrekendeLabels.add(d.label);
+      }
+    });
+    if(r.isUitzondering && !r.juist) uitzonderingGemist = true;
+  });
 
   const tips = [];
   if(aantalJuist === resultaten.length){
-    tips.push("Uitstekend! Alle 5 configuraties zijn volledig correct volgens de regel van Madelung.");
+    tips.push("Uitstekend! Alle 5 configuraties zijn volledig correct, inclusief eventuele uitzonderingen op de regel van Madelung.");
   } else {
     if(foutTypes["ontbreekt"] > 0){
       tips.push(`Je vergat in totaal ${foutTypes["ontbreekt"]} subschil(len). Loop de opbouwvolgorde na: ...4s → 3d → 4p → 5s..., het is gemakkelijk om een subschil zoals 3d of 4f over te slaan.`);
@@ -654,6 +740,9 @@ function renderAnalyse(){
     }
     if(ontbrekendeLabels.has("3d")){
       tips.push("Specifiek: 3d wordt pas ingevuld ná 4s, maar staat wél vóór 4p in de opbouwvolgorde — een veelgemaakte valkuil.");
+    }
+    if(uitzonderingGemist){
+      tips.push("Let op: sommige elementen (zoals Cr, Cu, Mo, Ag, La) wijken af van de gewone opbouwvolgorde. Een half-gevulde (d⁵) of volledig gevulde (d¹⁰) subschil is extra stabiel, waardoor er één elektron uit de ns-subschil naar de (n-1)d-subschil verschuift.");
     }
   }
 
@@ -687,6 +776,7 @@ function renderAnalyse(){
           <div class="result-elem">${r.el.symbool} — ${r.el.naam} <span class="rz">Z=${r.el.z}</span></div>
           <span class="status-badge ${r.juist ? "ok" : "nok"}">${r.juist ? "Correct" : "Fout"}</span>
         </div>
+        ${r.isUitzondering ? `<div class="exception-note"><i class="ti ti-alert-triangle"></i> Uitzondering op de opbouwregel (stabiliteit)</div>` : ""}
         <div class="answer-row">Jouw invoer: <strong>${r.ruweInvoer || "(leeg)"}</strong></div>
         <div class="answer-row">Correcte configuratie: <strong>${formatteerConfig(r.correctArr)}</strong></div>
         <div class="diff-grid">${chips}</div>
