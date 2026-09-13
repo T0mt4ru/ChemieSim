@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elemental Merge — ChemieSim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #1c2330;
+    --border:   rgba(255,255,255,0.07);
+    --border2:  rgba(255,255,255,0.13);
+    --accent:   #5DCAA5;
+    --accent2:  #378ADD;
+    --text:     #e6edf3;
+    --muted:    #768390;
+    --tag-bg:   rgba(93,202,165,0.12);
+    --tag-text: #5DCAA5;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(93,202,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(93,202,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  header { padding: 3rem 0 2rem; border-bottom: 1px solid var(--border2); margin-bottom: 2rem; }
+
+  .back-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
+
+  .site-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .site-label::before { content: ''; display: inline-block; width: 24px; height: 1px; background: var(--accent); }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+  h1 span { color: var(--accent); }
+
+  .header-desc { font-size: 1rem; font-weight: 300; color: var(--muted); max-width: 560px; line-height: 1.7; }
+
+  /* ── game ── */
+  .game-wrapper { display: flex; flex-direction: column; align-items: center; touch-action: none; }
+
+  .score-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; margin-bottom: 1.25rem;
+  }
+  .score-box {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+    padding: 0.6rem 1.2rem; font-family: var(--mono); text-align: center;
+  }
+  .score-box .label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .score-box .value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+
+  .game-board {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    aspect-ratio: 1 / 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .tile {
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #12141c;
+    font-family: var(--sans);
+    transition: background-color 0.15s;
+    overflow: hidden;
+    padding: 4px;
+    text-align: center;
+  }
+  .tile.empty { background: var(--surface2) !important; }
+  .tile .atomic-number { font-family: var(--mono); font-size: 10px; align-self: flex-start; opacity: 0.6; }
+  .tile .symbol { font-family: var(--mono); font-weight: 700; font-size: clamp(1rem, 4vw, 1.5rem); line-height: 1.1; }
+  .tile .name { font-size: clamp(8px, 1.6vw, 10px); opacity: 0.8; line-height: 1.1; margin-top: 2px; }
+
+  .hint-text {
+    margin-top: 1.25rem;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .hint-text strong { color: var(--text); font-weight: 500; }
+
+  .button-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    width: 100%;
+  }
+
+  .btn {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    background: var(--tag-bg); color: var(--accent); border: 1px solid rgba(93,202,165,0.3);
+    padding: 0.7rem 1rem; border-radius: 8px; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+    flex: 1; text-align: center;
+  }
+  .btn:hover { background: rgba(93,202,165,0.22); border-color: var(--accent); }
+  .btn.secondary { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .btn.secondary:hover { border-color: var(--border2); background: var(--surface); }
+
+  /* ── overlays ── */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(13,17,23,0.85);
+    display: none; align-items: center; justify-content: center; z-index: 50; padding: 1.5rem;
+  }
+  .overlay.visible { display: flex; }
+  .overlay-content {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 14px;
+    padding: 2rem; max-width: 460px; width: 100%; max-height: 80vh; overflow-y: auto;
+  }
+  .overlay-content h2 {
+    font-family: var(--mono); font-size: 1.2rem; color: var(--accent); margin-bottom: 1rem;
+  }
+  .overlay-content p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 0.75rem; }
+  .overlay-content ul { margin: 0.5rem 0 1rem 1.1rem; }
+  .overlay-content li { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 0.4rem; }
+  .overlay-content li strong { color: var(--text); }
+  .overlay-content .btn { margin-top: 0.5rem; display: inline-block; width: auto; }
+
+  .game-over-content { text-align: center; }
+  .game-over-content .final-score {
+    font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--accent);
+    margin: 1rem 0 1.5rem;
+  }
+
+  footer {
+    margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  }
+  .footer-brand { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .footer-brand strong { color: var(--accent); }
+  .footer-note { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  header { animation: fadeUp 0.5s ease both; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <a class="back-link" href="../index.html"><i class="ti ti-arrow-left" aria-hidden="true"></i> Terug naar overzicht</a>
+    <p class="site-label">Chemie &mdash; Spel &amp; herhaling</p>
+    <h1>Elemental <span>Merge</span></h1>
+    <p class="header-desc">
+      Een 2048-achtig spel met het periodiek systeem. Combineer twee gelijke elementen om het volgende element
+      (atoomnummer + 1) te vormen &mdash; van Waterstof helemaal tot Oganesson.
+    </p>
+  </header>
+
+  <div class="game-wrapper" id="game-wrapper">
+
+    <div class="score-row">
+      <div class="score-box">
+        <div class="label">Score</div>
+        <div class="value" id="score-value">0</div>
+      </div>
+    </div>
+
+    <div class="game-board" id="game-board"></div>
+
+    <p class="hint-text">Gebruik <strong>Pijltjestoetsen</strong> of <strong>Vegen</strong> om te spelen!</p>
+
+    <div class="button-row">
+      <button class="btn" id="new-game-btn">Nieuw spel</button>
+      <button class="btn secondary" id="help-btn">Help</button>
+    </div>
+  </div>
+
+  <footer>
+    <span class="footer-brand"><strong>ChemieSim</strong>  Interactieve leeromgeving</span>
+    <span class="footer-note">Werkt volledig in de browser &mdash; geen installatie nodig.</span>
+  </footer>
+
+</div>
+
+<!-- Game over overlay -->
+<div class="overlay" id="gameover-overlay">
+  <div class="overlay-content game-over-content">
+    <h2>Spel voorbij!</h2>
+    <p>Er zijn geen zetten meer mogelijk.</p>
+    <div class="final-score" id="final-score">0</div>
+    <button class="btn" id="gameover-newgame-btn">Nieuw spel</button>
+  </div>
+</div>
+
+<!-- Help overlay -->
+<div class="overlay" id="help-overlay">
+  <div class="overlay-content">
+    <h2>Hoe te spelen</h2>
+    <p>
+      Welkom bij Elemental Merge! Dit is een 2048-achtig spel waarbij je elementen combineert
+      om zwaardere elementen te vormen.
+    </p>
+    <p><strong style="color:var(--text);">Spelregels:</strong></p>
+    <ul>
+      <li>Gebruik de <strong>pijltjestoetsen</strong> (omhoog, omlaag, links, rechts), of <strong>veeg</strong> op mobiel, om alle tegels in die richting te verplaatsen.</li>
+      <li>Wanneer twee tegels met hetzelfde atoomnummer elkaar raken tijdens een beweging, voegen ze samen tot één tegel van het <strong>volgende atoomnummer (N+1)</strong>. Twee Waterstof (H, 1)-tegels worden bijvoorbeeld één Helium (He, 2)-tegel.</li>
+      <li>Na elke zet verschijnt er een nieuwe tegel op een willekeurige lege plek op het bord.</li>
+      <li>De begintegels zijn Waterstof en Helium. Naarmate je zwaardere elementen maakt, veranderen de tegels die verschijnen mee om je verder te helpen. Er is een kleine kans dat een "vastzittend" lager element opnieuw verschijnt.</li>
+      <li>Je scoort punten door elementen samen te voegen. De score is gebaseerd op het atoomnummer van het nieuw gevormde element.</li>
+      <li>Het spel is voorbij wanneer het bord vol is en er geen mogelijke zetten meer zijn.</li>
+    </ul>
+    <button class="btn" id="help-close-btn">Sluiten</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════ ELEMENTEN DATA ═══════════════════════ */
+const ELEMENTS = {
+    1: { symbol: 'H', name: 'Waterstof', color: '#B3E0FF' },
+    3: { symbol: 'Li', name: 'Lithium', color: '#FF9999' },
+    11: { symbol: 'Na', name: 'Natrium', color: '#FF9999' },
+    19: { symbol: 'K', name: 'Kalium', color: '#FF9999' },
+    37: { symbol: 'Rb', name: 'Rubidium', color: '#FF9999' },
+    55: { symbol: 'Cs', name: 'Cesium', color: '#FF9999' },
+    87: { symbol: 'Fr', name: 'Francium', color: '#FF9999' },
+    4: { symbol: 'Be', name: 'Beryllium', color: '#FFCC99' },
+    12: { symbol: 'Mg', name: 'Magnesium', color: '#FFCC99' },
+    20: { symbol: 'Ca', name: 'Calcium', color: '#FFCC99' },
+    38: { symbol: 'Sr', name: 'Strontium', color: '#FFCC99' },
+    56: { symbol: 'Ba', name: 'Barium', color: '#FFCC99' },
+    88: { symbol: 'Ra', name: 'Radium', color: '#FFCC99' },
+    21: { symbol: 'Sc', name: 'Scandium', color: '#A0BBE0' },
+    22: { symbol: 'Ti', name: 'Titanium', color: '#A5C0E5' },
+    23: { symbol: 'V', name: 'Vanadium', color: '#AAC5EA' },
+    24: { symbol: 'Cr', name: 'Chroom', color: '#B0CAEF' },
+    25: { symbol: 'Mn', name: 'Mangaan', color: '#B5CFF4' },
+    26: { symbol: 'Fe', name: 'IJzer', color: '#BBDAF9' },
+    27: { symbol: 'Co', name: 'Kobalt', color: '#C0DFFD' },
+    28: { symbol: 'Ni', name: 'Nikkel', color: '#C5E4FF' },
+    29: { symbol: 'Cu', name: 'Koper', color: '#CAE9FF' },
+    30: { symbol: 'Zn', name: 'Zink', color: '#CFEEFF' },
+    39: { symbol: 'Y', name: 'Yttrium', color: '#8FB0D0' },
+    40: { symbol: 'Zr', name: 'Zirkonium', color: '#94B5D5' },
+    41: { symbol: 'Nb', name: 'Niobium', color: '#99BADF' },
+    42: { symbol: 'Mo', name: 'Molybdeen', color: '#9EBFE4' },
+    43: { symbol: 'Tc', name: 'Technetium', color: '#A3C4E9' },
+    44: { symbol: 'Ru', name: 'Ruthenium', color: '#A8C9EE' },
+    45: { symbol: 'Rh', name: 'Rhodium', color: '#ADD3F3' },
+    46: { symbol: 'Pd', name: 'Palladium', color: '#B2D8F8' },
+    47: { symbol: 'Ag', name: 'Zilver', color: '#B7DEFD' },
+    48: { symbol: 'Cd', name: 'Cadmium', color: '#BCE3FF' },
+    71: { symbol: 'Lu', name: 'Lutetium', color: '#7FA0B0' },
+    72: { symbol: 'Hf', name: 'Hafnium', color: '#84A5B5' },
+    73: { symbol: 'Ta', name: 'Tantalium', color: '#89AABA' },
+    74: { symbol: 'W', name: 'Wolfraam', color: '#8EA0BF' },
+    75: { symbol: 'Re', name: 'Rhenium', color: '#93A5C4' },
+    76: { symbol: 'Os', name: 'Osmium', color: '#98AAC9' },
+    77: { symbol: 'Ir', name: 'Iridium', color: '#9DB2CE' },
+    78: { symbol: 'Pt', name: 'Platina', color: '#A2B7D3' },
+    79: { symbol: 'Au', name: 'Goud', color: '#A7BBD8' },
+    80: { symbol: 'Hg', name: 'Kwik', color: '#ACC2DD' },
+    103: { symbol: 'Lr', name: 'Lawrencium', color: '#6F90A0' },
+    104: { symbol: 'Rf', name: 'Rutherfordium', color: '#7495A5' },
+    105: { symbol: 'Db', name: 'Dubnium', color: '#799AAC' },
+    106: { symbol: 'Sg', name: 'Seaborgium', color: '#7EA0B1' },
+    107: { symbol: 'Bh', name: 'Bohrium', color: '#83A5B6' },
+    108: { symbol: 'Hs', name: 'Hassium', color: '#88AABD' },
+    109: { symbol: 'Mt', name: 'Meitnerium', color: '#8DADC2' },
+    110: { symbol: 'Ds', name: 'Darmstadtium', color: '#92B2C7' },
+    111: { symbol: 'Rg', name: 'Roentgenium', color: '#97B7CC' },
+    112: { symbol: 'Cn', name: 'Copernicium', color: '#9CBBD1' },
+    5: { symbol: 'B', name: 'Boor', color: '#E0BBE4' },
+    13: { symbol: 'Al', name: 'Aluminium', color: '#E0BBE4' },
+    31: { symbol: 'Ga', name: 'Gallium', color: '#E0BBE4' },
+    49: { symbol: 'In', name: 'Indium', color: '#E0BBE4' },
+    81: { symbol: 'Tl', name: 'Thallium', color: '#E0BBE4' },
+    113: { symbol: 'Nh', name: 'Nihonium', color: '#E0BBE4' },
+    6: { symbol: 'C', name: 'Koolstof', color: '#9E9E9E' },
+    14: { symbol: 'Si', name: 'Silicium', color: '#9E9E9E' },
+    32: { symbol: 'Ge', name: 'Germanium', color: '#9E9E9E' },
+    50: { symbol: 'Sn', name: 'Tin', color: '#9E9E9E' },
+    82: { symbol: 'Pb', name: 'Lood', color: '#9E9E9E' },
+    114: { symbol: 'Fl', name: 'Flerovium', color: '#9E9E9E' },
+    7: { symbol: 'N', name: 'Stikstof', color: '#B3E0C2' },
+    15: { symbol: 'P', name: 'Fosfor', color: '#B3E0C2' },
+    33: { symbol: 'As', name: 'Arseen', color: '#B3E0C2' },
+    51: { symbol: 'Sb', name: 'Antimoon', color: '#B3E0C2' },
+    83: { symbol: 'Bi', name: 'Bismut', color: '#B3E0C2' },
+    115: { symbol: 'Mc', name: 'Moscovium', color: '#B3E0C2' },
+    8: { symbol: 'O', name: 'Zuurstof', color: '#D4AA77' },
+    16: { symbol: 'S', name: 'Zwavel', color: '#D4AA77' },
+    34: { symbol: 'Se', name: 'Seleen', color: '#D4AA77' },
+    52: { symbol: 'Te', name: 'Telluur', color: '#D4AA77' },
+    84: { symbol: 'Po', name: 'Polonium', color: '#D4AA77' },
+    116: { symbol: 'Lv', name: 'Livermorium', color: '#D4AA77' },
+    9: { symbol: 'F', name: 'Fluor', color: '#9EE0C9' },
+    17: { symbol: 'Cl', name: 'Chloor', color: '#9EE0C9' },
+    35: { symbol: 'Br', name: 'Broom', color: '#9EE0C9' },
+    53: { symbol: 'I', name: 'Jodium', color: '#9EE0C9' },
+    85: { symbol: 'At', name: 'Astaat', color: '#9EE0C9' },
+    117: { symbol: 'Ts', name: 'Tennessine', color: '#9EE0C9' },
+    2: { symbol: 'He', name: 'Helium', color: '#FFFF99' },
+    10: { symbol: 'Ne', name: 'Neon', color: '#FFFF99' },
+    18: { symbol: 'Ar', name: 'Argon', color: '#FFFF99' },
+    36: { symbol: 'Kr', name: 'Krypton', color: '#FFFF99' },
+    54: { symbol: 'Xe', name: 'Xenon', color: '#FFFF99' },
+    86: { symbol: 'Rn', name: 'Radon', color: '#FFFF99' },
+    118: { symbol: 'Og', name: 'Oganesson', color: '#FFFF99' },
+    57: { symbol: 'La', name: 'Lanthanium', color: '#BB99CC' },
+    58: { symbol: 'Ce', name: 'Cerium', color: '#C0A0D1' },
+    59: { symbol: 'Pr', name: 'Praseodymium', color: '#C5A7D6' },
+    60: { symbol: 'Nd', name: 'Neodymium', color: '#CAADD7' },
+    61: { symbol: 'Pm', name: 'Promethium', color: '#CFB4DD' },
+    62: { symbol: 'Sm', name: 'Samarium', color: '#D4BBDF' },
+    63: { symbol: 'Eu', name: 'Europium', color: '#D9C2E0' },
+    64: { symbol: 'Gd', name: 'Gadolinium', color: '#DEC9E2' },
+    65: { symbol: 'Tb', name: 'Terbium', color: '#E3D0E4' },
+    66: { symbol: 'Dy', name: 'Dysprosium', color: '#E8D7E6' },
+    67: { symbol: 'Ho', name: 'Holmium', color: '#EEDEE8' },
+    68: { symbol: 'Er', name: 'Erbium', color: '#F3E5E9' },
+    69: { symbol: 'Tm', name: 'Thulium', color: '#F8ECEB' },
+    70: { symbol: 'Yb', name: 'Ytterbium', color: '#FDF3ED' },
+    89: { symbol: 'Ac', name: 'Actinium', color: '#99CC99' },
+    90: { symbol: 'Th', name: 'Thorium', color: '#A0D1A0' },
+    91: { symbol: 'Pa', name: 'Protactinium', color: '#A7D6A7' },
+    92: { symbol: 'U', name: 'Uranium', color: '#AEDBAE' },
+    93: { symbol: 'Np', name: 'Neptunium', color: '#B5E0B5' },
+    94: { symbol: 'Pu', name: 'Plutonium', color: '#BCE6BC' },
+    95: { symbol: 'Am', name: 'Americium', color: '#C3EBC3' },
+    96: { symbol: 'Cm', name: 'Curium', color: '#CAF1CA' },
+    97: { symbol: 'Bk', name: 'Berkelium', color: '#D1F6D1' },
+    98: { symbol: 'Cf', name: 'Californium', color: '#D8FCDC' },
+    99: { symbol: 'Es', name: 'Einsteinium', color: '#DFFFE3' },
+    100: { symbol: 'Fm', name: 'Fermium', color: '#E6FFE9' },
+    101: { symbol: 'Md', name: 'Mendelevium', color: '#EDFFEE' },
+    102: { symbol: 'No', name: 'Nobelium', color: '#F4FFF4' }
+};
+
+/* ═══════════════════════ SPELLOGICA ═══════════════════════ */
+const GRID_SIZE = 4;
+const INITIAL_TILES = 2;
+
+function initializeBoard() {
+  return Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+}
+
+function getRandomEmptyCell(b) {
+  const cells = [];
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (b[r][c] === 0) cells.push({ r, c });
+  if (cells.length === 0) return null;
+  return cells[Math.floor(Math.random() * cells.length)];
+}
+
+function getHighestElementOnBoard(b) {
+  let max = 0;
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (b[r][c] > max) max = b[r][c];
+  return max;
+}
+
+function checkGameOver(b) {
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE; c++)
+      if (b[r][c] === 0) return false;
+
+  for (let r = 0; r < GRID_SIZE; r++)
+    for (let c = 0; c < GRID_SIZE - 1; c++)
+      if (b[r][c] !== 0 && b[r][c] === b[r][c + 1]) return false;
+
+  for (let c = 0; c < GRID_SIZE; c++)
+    for (let r = 0; r < GRID_SIZE - 1; r++)
+      if (b[r][c] !== 0 && b[r][c] === b[r + 1][c]) return false;
+
+  return true;
+}
+
+function addNewElement(b) {
+  const newBoard = b.map(row => [...row]);
+  const emptyCell = getRandomEmptyCell(newBoard);
+  if (!emptyCell) return newBoard;
+
+  const highest = getHighestElementOnBoard(newBoard);
+  let primarySpawn1 = Math.max(1, highest - 8);
+  let primarySpawn2 = primarySpawn1 + 1;
+
+  const stuckElements = [];
+  for (let i = 1; i < primarySpawn1; i++) {
+    const count = newBoard.flat().filter(num => num === i).length;
+    if (count === 1) stuckElements.push(i);
+  }
+
+  let newAtomicNum;
+  if (stuckElements.length > 0 && Math.random() < 0.15) {
+    newAtomicNum = stuckElements[Math.floor(Math.random() * stuckElements.length)];
+  } else {
+    newAtomicNum = Math.random() < 0.9 ? primarySpawn1 : primarySpawn2;
+  }
+
+  newBoard[emptyCell.r][emptyCell.c] = newAtomicNum;
+  return newBoard;
+}
+
+function slideAndMergeLine(line, direction) {
+  let tiles = line.filter(num => num !== 0);
+  let changed = false;
+  let scoreIncrease = 0;
+
+  if (direction === 'right' || direction === 'down') {
+    for (let i = tiles.length - 1; i > 0; i--) {
+      if (tiles[i] !== 0 && tiles[i] === tiles[i - 1]) {
+        tiles[i] += 1;
+        scoreIncrease += tiles[i];
+        tiles.splice(i - 1, 1);
+        changed = true;
+        i--;
+      }
+    }
+    while (tiles.length < GRID_SIZE) tiles.unshift(0);
+  } else {
+    for (let i = 0; i < tiles.length - 1; i++) {
+      if (tiles[i] !== 0 && tiles[i] === tiles[i + 1]) {
+        tiles[i] += 1;
+        scoreIncrease += tiles[i];
+        tiles.splice(i + 1, 1);
+        changed = true;
+      }
+    }
+    while (tiles.length < GRID_SIZE) tiles.push(0);
+  }
+
+  const originalWithoutZeros = line.filter(num => num !== 0);
+  const newWithoutZeros = tiles.filter(num => num !== 0);
+  if (changed || JSON.stringify(originalWithoutZeros) !== JSON.stringify(newWithoutZeros) || originalWithoutZeros.length !== newWithoutZeros.length) {
+    changed = true;
+  }
+
+  return { newLine: tiles, changed, scoreIncrease };
+}
+
+/* ═══════════════════════ STATE ═══════════════════════ */
+let board = initializeBoard();
+for (let i = 0; i < INITIAL_TILES; i++) board = addNewElement(board);
+let score = 0;
+let isGameOver = false;
+let showHelp = false;
+
+/* ═══════════════════════ RENDER ═══════════════════════ */
+const boardEl = document.getElementById('game-board');
+const scoreEl = document.getElementById('score-value');
+const gameoverOverlay = document.getElementById('gameover-overlay');
+const helpOverlay = document.getElementById('help-overlay');
+const finalScoreEl = document.getElementById('final-score');
+
+function tileHTML(atomicNumber) {
+  if (atomicNumber === 0) return `<div class="tile empty"></div>`;
+  const el = ELEMENTS[atomicNumber] || { symbol: '', name: '', color: '#9E9E9E' };
+  return `<div class="tile" style="background-color:${el.color}">
+    <span class="atomic-number">${atomicNumber}</span>
+    <span class="symbol">${el.symbol}</span>
+    <span class="name">${el.name}</span>
+  </div>`;
+}
+
+function render() {
+  boardEl.innerHTML = board.flat().map(tileHTML).join('');
+  scoreEl.textContent = score;
+  gameoverOverlay.classList.toggle('visible', isGameOver);
+  helpOverlay.classList.toggle('visible', showHelp);
+  if (isGameOver) finalScoreEl.textContent = score;
+}
+
+/* ═══════════════════════ ACTIES ═══════════════════════ */
+function applyMove(direction) {
+  if (isGameOver || showHelp) return;
+
+  let newBoard = board.map(row => [...row]);
+  let boardChanged = false;
+  let scoreGain = 0;
+
+  if (direction === 'left' || direction === 'right') {
+    for (let r = 0; r < GRID_SIZE; r++) {
+      const original = [...newBoard[r]];
+      const { newLine, changed, scoreIncrease } = slideAndMergeLine(newBoard[r], direction);
+      newBoard[r] = newLine;
+      scoreGain += scoreIncrease;
+      if (changed || JSON.stringify(original) !== JSON.stringify(newLine)) boardChanged = true;
+    }
+  } else if (direction === 'up' || direction === 'down') {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      let column = [];
+      for (let r = 0; r < GRID_SIZE; r++) column.push(newBoard[r][c]);
+      const original = [...column];
+      const { newLine, changed, scoreIncrease } = slideAndMergeLine(column, direction);
+      scoreGain += scoreIncrease;
+      if (changed || JSON.stringify(original) !== JSON.stringify(newLine)) boardChanged = true;
+      for (let r = 0; r < GRID_SIZE; r++) newBoard[r][c] = newLine[r];
+    }
+  }
+
+  if (boardChanged) {
+    score += scoreGain;
+    board = addNewElement(newBoard);
+    if (checkGameOver(board)) isGameOver = true;
+    render();
+  }
+}
+
+function handleNewGame() {
+  let initialBoard = initializeBoard();
+  for (let i = 0; i < INITIAL_TILES; i++) initialBoard = addNewElement(initialBoard);
+  board = initialBoard;
+  score = 0;
+  isGameOver = false;
+  showHelp = false;
+  render();
+}
+
+function toggleHelp(force) {
+  showHelp = typeof force === 'boolean' ? force : !showHelp;
+  render();
+}
+
+/* ═══════════════════════ INPUT ═══════════════════════ */
+document.addEventListener('keydown', e => {
+  if (showHelp) {
+    if (e.key === 'Escape') toggleHelp(false);
+    return;
+  }
+  switch (e.key) {
+    case 'ArrowUp': e.preventDefault(); applyMove('up'); break;
+    case 'ArrowDown': e.preventDefault(); applyMove('down'); break;
+    case 'ArrowLeft': e.preventDefault(); applyMove('left'); break;
+    case 'ArrowRight': e.preventDefault(); applyMove('right'); break;
+    case 'h': case 'H': toggleHelp(); break;
+    case 'n': case 'N': handleNewGame(); break;
+  }
+});
+
+let touchStartX = null, touchStartY = null, isSwiping = false;
+const minSwipeDistance = 30, swipeThreshold = 10;
+const gameWrapper = document.getElementById('game-wrapper');
+
+gameWrapper.addEventListener('touchstart', e => {
+  if (showHelp || isGameOver) return;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  isSwiping = false;
+}, { passive: true });
+
+gameWrapper.addEventListener('touchmove', e => {
+  if (showHelp || isGameOver || touchStartX === null) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  const dy = e.touches[0].clientY - touchStartY;
+  if ((Math.abs(dx) > swipeThreshold || Math.abs(dy) > swipeThreshold) && !isSwiping) isSwiping = true;
+  if (isSwiping) e.preventDefault();
+}, { passive: false });
+
+gameWrapper.addEventListener('touchend', e => {
+  if (showHelp || isGameOver || touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > minSwipeDistance) {
+    applyMove(dx > 0 ? 'right' : 'left');
+  } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > minSwipeDistance) {
+    applyMove(dy > 0 ? 'down' : 'up');
+  }
+  touchStartX = null;
+  touchStartY = null;
+  isSwiping = false;
+});
+
+document.getElementById('new-game-btn').addEventListener('click', handleNewGame);
+document.getElementById('gameover-newgame-btn').addEventListener('click', handleNewGame);
+document.getElementById('help-btn').addEventListener('click', () => toggleHelp());
+document.getElementById('help-close-btn').addEventListener('click', () => toggleHelp(false));
+
+render();
+</script>
+</body>
+</html>
