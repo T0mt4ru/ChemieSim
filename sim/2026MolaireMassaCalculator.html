@@ -830,7 +830,7 @@ const suggestList = document.getElementById('suggest-list');
 trivialInput.addEventListener('input', e => {
   const val = e.target.value.toLowerCase();
   if (!val) { suggestList.style.display = 'none'; return; }
-  const matches = allTrivialNames.filter(n => n.toLowerCase().startsWith(val)).slice(0, 6);
+  const matches = allTrivialNames.filter(n => n.toLowerCase().includes(val)).slice(0, 6);
   if (matches.length === 0) { suggestList.style.display = 'none'; return; }
   suggestList.innerHTML = matches.map(m => `<div class="suggest-item">${m}</div>`).join('');
   suggestList.style.display = 'block';
