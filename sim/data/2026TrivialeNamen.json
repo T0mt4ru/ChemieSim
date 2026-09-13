@@ -6,7 +6,7 @@
   "(C2H5)2O": ["ether"],
   "C4H6O4": ["barnsteenzuur"],
   "C4H6O5": ["appelzuur"],
-  "C6H4(CH3)2":  ["dimethylbenzeen", "orthodimethylbenzeen", "ortho-dimethylbenzeen", "metadimethylbenzeen", "meta-dimethylbenzeen", "paradimethylbenzeen", "para-dimethylbenzeen", "xyleen", "orthoxyleen", "ortho-xyleen", "metaxyleen", "meta-xyleen", "paraxyleen", "para-xyleen"],,
+  "C6H4(CH3)2":  ["dimethylbenzeen", "orthodimethylbenzeen", "ortho-dimethylbenzeen", "metadimethylbenzeen", "meta-dimethylbenzeen", "paradimethylbenzeen", "para-dimethylbenzeen", "xyleen", "orthoxyleen", "ortho-xyleen", "metaxyleen", "meta-xyleen", "paraxyleen", "para-xyleen"],
   "C6H5OH": ["fenol", "phenol", "hydroxybenzeen"],
   "C6H5CH=CHCOOH": ["kaneelzuur"],
   "C6H5CH3": ["tolueen", "methylbenzeen"],
