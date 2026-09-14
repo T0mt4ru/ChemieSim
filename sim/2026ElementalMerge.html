@@ -112,6 +112,7 @@
   .score-box .value { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
 
   .game-board {
+    --gap: 10px;
     position: relative;
     width: 100%;
     max-width: 460px;
@@ -119,14 +120,36 @@
     background: var(--surface);
     border: 1px solid var(--border2);
     border-radius: 14px;
-    padding: 10px;
+    padding: var(--gap);
+  }
+
+  /* statische achtergrond-cellen, blijven altijd op hun plek */
+  .board-backdrop {
+    position: absolute;
+    inset: var(--gap);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
-    gap: 10px;
+    gap: var(--gap);
+  }
+  .backdrop-cell { border-radius: 10px; background: var(--surface2); }
+
+  /* laag met de daadwerkelijke, bewegende tegels */
+  .tiles-layer { position: absolute; inset: var(--gap); }
+
+  .tile-wrap {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc((100% - 3 * var(--gap)) / 4);
+    height: calc((100% - 3 * var(--gap)) / 4);
+    transform: translate(calc(var(--c) * (100% + var(--gap))), calc(var(--r) * (100% + var(--gap))));
+    transition: transform 120ms ease-in-out;
   }
 
-  .tile {
+  .tile-inner {
+    width: 100%;
+    height: 100%;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -134,15 +157,27 @@
     justify-content: center;
     color: #12141c;
     font-family: var(--sans);
-    transition: background-color 0.15s;
     overflow: hidden;
     padding: 4px;
     text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
   }
-  .tile.empty { background: var(--surface2) !important; }
-  .tile .atomic-number { font-family: var(--mono); font-size: 10px; align-self: flex-start; opacity: 0.6; }
-  .tile .symbol { font-family: var(--mono); font-weight: 700; font-size: clamp(1rem, 4vw, 1.5rem); line-height: 1.1; }
-  .tile .name { font-size: clamp(8px, 1.6vw, 10px); opacity: 0.8; line-height: 1.1; margin-top: 2px; }
+  .tile-inner .atomic-number { font-family: var(--mono); font-size: 10px; align-self: flex-start; opacity: 0.6; }
+  .tile-inner .symbol { font-family: var(--mono); font-weight: 700; font-size: clamp(1rem, 4vw, 1.5rem); line-height: 1.1; }
+  .tile-inner .name { font-size: clamp(8px, 1.6vw, 10px); opacity: 0.8; line-height: 1.1; margin-top: 2px; }
+
+  .tile-inner.spawn { animation: tileSpawn 200ms ease-out; }
+  .tile-inner.pop { animation: tilePop 200ms ease-out; }
+
+  @keyframes tileSpawn {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+  @keyframes tilePop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
 
   .hint-text {
     margin-top: 1.25rem;
@@ -228,7 +263,10 @@
       </div>
     </div>
 
-    <div class="game-board" id="game-board"></div>
+    <div class="game-board" id="game-board">
+      <div class="board-backdrop" id="board-backdrop"></div>
+      <div class="tiles-layer" id="tiles-layer"></div>
+    </div>
 
     <p class="hint-text">Gebruik <strong>Pijltjestoetsen</strong> of <strong>Vegen</strong> om te spelen!</p>
 
@@ -399,191 +437,246 @@ const ELEMENTS = {
     102: { symbol: 'No', name: 'Nobelium', color: '#F4FFF4' }
 };
 
-/* ═══════════════════════ SPELLOGICA ═══════════════════════ */
+/* ═══════════════════════ SPELLOGICA (tegel-identiteit) ═══════════════════════ */
 const GRID_SIZE = 4;
 const INITIAL_TILES = 2;
 
-function initializeBoard() {
-  return Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
-}
+let idCounter = 1;
+function nextId() { return idCounter++; }
 
-function getRandomEmptyCell(b) {
+function emptyGrid() {
+  return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+}
+function gridFromTiles(tiles) {
+  const grid = emptyGrid();
+  for (const t of tiles) grid[t.row][t.col] = t;
+  return grid;
+}
+function emptyCells(grid) {
   const cells = [];
   for (let r = 0; r < GRID_SIZE; r++)
     for (let c = 0; c < GRID_SIZE; c++)
-      if (b[r][c] === 0) cells.push({ r, c });
-  if (cells.length === 0) return null;
-  return cells[Math.floor(Math.random() * cells.length)];
+      if (!grid[r][c]) cells.push({ r, c });
+  return cells;
 }
-
-function getHighestElementOnBoard(b) {
+function getHighestValue(tiles) {
   let max = 0;
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE; c++)
-      if (b[r][c] > max) max = b[r][c];
+  for (const t of tiles) if (t.value > max) max = t.value;
   return max;
 }
 
-function checkGameOver(b) {
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE; c++)
-      if (b[r][c] === 0) return false;
+/* Zelfde spawn-systeem als voorheen: het spawnbereik schuift mee met het
+   hoogste element op het bord, en een geïsoleerde lagere tegel ("vastzittend
+   element") heeft 15% kans om alsnog terug te keren zodat hij niet voor
+   altijd geïsoleerd blijft staan. */
+function spawnTile(grid, tilesOnBoard) {
+  const cells = emptyCells(grid);
+  if (cells.length === 0) return null;
+  const cell = cells[Math.floor(Math.random() * cells.length)];
 
-  for (let r = 0; r < GRID_SIZE; r++)
-    for (let c = 0; c < GRID_SIZE - 1; c++)
-      if (b[r][c] !== 0 && b[r][c] === b[r][c + 1]) return false;
-
-  for (let c = 0; c < GRID_SIZE; c++)
-    for (let r = 0; r < GRID_SIZE - 1; r++)
-      if (b[r][c] !== 0 && b[r][c] === b[r + 1][c]) return false;
-
-  return true;
-}
-
-function addNewElement(b) {
-  const newBoard = b.map(row => [...row]);
-  const emptyCell = getRandomEmptyCell(newBoard);
-  if (!emptyCell) return newBoard;
-
-  const highest = getHighestElementOnBoard(newBoard);
-  let primarySpawn1 = Math.max(1, highest - 8);
-  let primarySpawn2 = primarySpawn1 + 1;
+  const highest = getHighestValue(tilesOnBoard);
+  const primarySpawn1 = Math.max(1, highest - 8);
+  const primarySpawn2 = primarySpawn1 + 1;
 
   const stuckElements = [];
   for (let i = 1; i < primarySpawn1; i++) {
-    const count = newBoard.flat().filter(num => num === i).length;
+    const count = tilesOnBoard.filter(t => t.value === i).length;
     if (count === 1) stuckElements.push(i);
   }
 
-  let newAtomicNum;
+  let value;
   if (stuckElements.length > 0 && Math.random() < 0.15) {
-    newAtomicNum = stuckElements[Math.floor(Math.random() * stuckElements.length)];
+    value = stuckElements[Math.floor(Math.random() * stuckElements.length)];
   } else {
-    newAtomicNum = Math.random() < 0.9 ? primarySpawn1 : primarySpawn2;
+    value = Math.random() < 0.9 ? primarySpawn1 : primarySpawn2;
   }
 
-  newBoard[emptyCell.r][emptyCell.c] = newAtomicNum;
-  return newBoard;
+  const tile = { id: nextId(), value, row: cell.r, col: cell.c, isNew: true, merged: false };
+  grid[cell.r][cell.c] = tile;
+  return tile;
 }
 
-function slideAndMergeLine(line, direction) {
-  let tiles = line.filter(num => num !== 0);
-  let changed = false;
-  let scoreIncrease = 0;
-
-  if (direction === 'right' || direction === 'down') {
-    for (let i = tiles.length - 1; i > 0; i--) {
-      if (tiles[i] !== 0 && tiles[i] === tiles[i - 1]) {
-        tiles[i] += 1;
-        scoreIncrease += tiles[i];
-        tiles.splice(i - 1, 1);
-        changed = true;
-        i--;
-      }
+function hasMoves(grid) {
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      const tile = grid[r][c];
+      if (!tile) return true;
+      if (c + 1 < GRID_SIZE && grid[r][c + 1]?.value === tile.value) return true;
+      if (r + 1 < GRID_SIZE && grid[r + 1][c]?.value === tile.value) return true;
     }
-    while (tiles.length < GRID_SIZE) tiles.unshift(0);
-  } else {
-    for (let i = 0; i < tiles.length - 1; i++) {
-      if (tiles[i] !== 0 && tiles[i] === tiles[i + 1]) {
-        tiles[i] += 1;
-        scoreIncrease += tiles[i];
-        tiles.splice(i + 1, 1);
-        changed = true;
-      }
-    }
-    while (tiles.length < GRID_SIZE) tiles.push(0);
   }
-
-  const originalWithoutZeros = line.filter(num => num !== 0);
-  const newWithoutZeros = tiles.filter(num => num !== 0);
-  if (changed || JSON.stringify(originalWithoutZeros) !== JSON.stringify(newWithoutZeros) || originalWithoutZeros.length !== newWithoutZeros.length) {
-    changed = true;
-  }
-
-  return { newLine: tiles, changed, scoreIncrease };
+  return false;
 }
+
+function traversalOrder(direction) {
+  const dr = direction === 'up' ? -1 : direction === 'down' ? 1 : 0;
+  const dc = direction === 'left' ? -1 : direction === 'right' ? 1 : 0;
+  const rows = [...Array(GRID_SIZE).keys()];
+  const cols = [...Array(GRID_SIZE).keys()];
+  if (dr > 0) rows.reverse();
+  if (dc > 0) cols.reverse();
+  return { rows, cols, dr, dc };
+}
+const inBounds = (r, c) => r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE;
 
 /* ═══════════════════════ STATE ═══════════════════════ */
-let board = initializeBoard();
-for (let i = 0; i < INITIAL_TILES; i++) board = addNewElement(board);
+let tiles = [];
 let score = 0;
 let isGameOver = false;
 let showHelp = false;
 
-/* ═══════════════════════ RENDER ═══════════════════════ */
-const boardEl = document.getElementById('game-board');
+function startNewGame() {
+  tiles = [];
+  const grid = emptyGrid();
+  for (let i = 0; i < INITIAL_TILES; i++) {
+    const t = spawnTile(grid, tiles);
+    if (t) tiles.push(t);
+  }
+  score = 0;
+  isGameOver = false;
+  showHelp = false;
+  domTiles.forEach(els => els.wrap.remove());
+  domTiles.clear();
+  render();
+}
+
+/* ═══════════════════════ ZET UITVOEREN ═══════════════════════ */
+function applyMove(direction) {
+  if (isGameOver || showHelp) return;
+
+  // reset transiënte animatievlaggen van de vorige zet
+  tiles.forEach(t => { t.isNew = false; t.merged = false; });
+
+  const grid = gridFromTiles(tiles);
+  const { rows, cols, dr, dc } = traversalOrder(direction);
+  let moved = false;
+  let scoreGain = 0;
+
+  for (const r of rows) {
+    for (const c of cols) {
+      const tile = grid[r][c];
+      if (!tile) continue;
+
+      let nr = r, nc = c;
+      while (inBounds(nr + dr, nc + dc) && grid[nr + dr][nc + dc] === null) {
+        nr += dr; nc += dc;
+      }
+
+      const tr = nr + dr, tc = nc + dc;
+      const target = inBounds(tr, tc) ? grid[tr][tc] : null;
+
+      if (target && target.value === tile.value && !target.merged && !tile.merged) {
+        grid[r][c] = null;
+        tile.row = tr; tile.col = tc;
+        tile.value += 1;
+        tile.merged = true;
+        grid[tr][tc] = tile;
+        scoreGain += tile.value;
+        moved = true;
+      } else {
+        if (nr !== r || nc !== c) moved = true;
+        grid[r][c] = null;
+        tile.row = nr; tile.col = nc;
+        grid[nr][nc] = tile;
+      }
+    }
+  }
+
+  if (!moved) return;
+
+  tiles = grid.flat().filter(t => t !== null);
+  const spawned = spawnTile(grid, tiles);
+  if (spawned) tiles.push(spawned);
+
+  score += scoreGain;
+  if (!hasMoves(grid)) isGameOver = true;
+
+  render();
+}
+
+function handleNewGame() { startNewGame(); }
+function toggleHelp(force) {
+  showHelp = typeof force === 'boolean' ? force : !showHelp;
+  render();
+}
+
+/* ═══════════════════════ RENDER (met behoud van tegel-identiteit) ═══════════════════════ */
+const tilesLayer = document.getElementById('tiles-layer');
+const boardBackdrop = document.getElementById('board-backdrop');
 const scoreEl = document.getElementById('score-value');
 const gameoverOverlay = document.getElementById('gameover-overlay');
 const helpOverlay = document.getElementById('help-overlay');
 const finalScoreEl = document.getElementById('final-score');
+const domTiles = new Map(); // id -> { wrap, inner }
 
-function tileHTML(atomicNumber) {
-  if (atomicNumber === 0) return `<div class="tile empty"></div>`;
+for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'backdrop-cell';
+  boardBackdrop.appendChild(cell);
+}
+
+function updateTileContent(inner, atomicNumber) {
   const el = ELEMENTS[atomicNumber] || { symbol: '', name: '', color: '#9E9E9E' };
-  return `<div class="tile" style="background-color:${el.color}">
-    <span class="atomic-number">${atomicNumber}</span>
+  inner.style.backgroundColor = el.color;
+  inner.innerHTML = `<span class="atomic-number">${atomicNumber}</span>
     <span class="symbol">${el.symbol}</span>
-    <span class="name">${el.name}</span>
-  </div>`;
+    <span class="name">${el.name}</span>`;
+}
+
+function renderTiles() {
+  const currentIds = new Set(tiles.map(t => t.id));
+
+  // verwijder DOM-elementen van tegels die zijn opgegaan in een merge
+  for (const [id, els] of domTiles) {
+    if (!currentIds.has(id)) {
+      els.wrap.remove();
+      domTiles.delete(id);
+    }
+  }
+
+  for (const tile of tiles) {
+    let els = domTiles.get(tile.id);
+
+    if (!els) {
+      const wrap = document.createElement('div');
+      wrap.className = 'tile-wrap';
+      wrap.style.setProperty('--r', tile.row);
+      wrap.style.setProperty('--c', tile.col);
+
+      const inner = document.createElement('div');
+      inner.className = 'tile-inner';
+      wrap.appendChild(inner);
+      tilesLayer.appendChild(wrap);
+
+      els = { wrap, inner };
+      domTiles.set(tile.id, els);
+      updateTileContent(inner, tile.value);
+
+      if (tile.isNew) {
+        inner.classList.add('spawn');
+        inner.addEventListener('animationend', () => inner.classList.remove('spawn'), { once: true });
+      }
+    } else {
+      els.wrap.style.setProperty('--r', tile.row);
+      els.wrap.style.setProperty('--c', tile.col);
+      updateTileContent(els.inner, tile.value);
+
+      if (tile.merged) {
+        els.inner.classList.remove('pop');
+        void els.inner.offsetWidth; // forceer reflow zodat de animatie herstart
+        els.inner.classList.add('pop');
+        els.inner.addEventListener('animationend', () => els.inner.classList.remove('pop'), { once: true });
+      }
+    }
+  }
 }
 
 function render() {
-  boardEl.innerHTML = board.flat().map(tileHTML).join('');
+  renderTiles();
   scoreEl.textContent = score;
   gameoverOverlay.classList.toggle('visible', isGameOver);
   helpOverlay.classList.toggle('visible', showHelp);
   if (isGameOver) finalScoreEl.textContent = score;
-}
-
-/* ═══════════════════════ ACTIES ═══════════════════════ */
-function applyMove(direction) {
-  if (isGameOver || showHelp) return;
-
-  let newBoard = board.map(row => [...row]);
-  let boardChanged = false;
-  let scoreGain = 0;
-
-  if (direction === 'left' || direction === 'right') {
-    for (let r = 0; r < GRID_SIZE; r++) {
-      const original = [...newBoard[r]];
-      const { newLine, changed, scoreIncrease } = slideAndMergeLine(newBoard[r], direction);
-      newBoard[r] = newLine;
-      scoreGain += scoreIncrease;
-      if (changed || JSON.stringify(original) !== JSON.stringify(newLine)) boardChanged = true;
-    }
-  } else if (direction === 'up' || direction === 'down') {
-    for (let c = 0; c < GRID_SIZE; c++) {
-      let column = [];
-      for (let r = 0; r < GRID_SIZE; r++) column.push(newBoard[r][c]);
-      const original = [...column];
-      const { newLine, changed, scoreIncrease } = slideAndMergeLine(column, direction);
-      scoreGain += scoreIncrease;
-      if (changed || JSON.stringify(original) !== JSON.stringify(newLine)) boardChanged = true;
-      for (let r = 0; r < GRID_SIZE; r++) newBoard[r][c] = newLine[r];
-    }
-  }
-
-  if (boardChanged) {
-    score += scoreGain;
-    board = addNewElement(newBoard);
-    if (checkGameOver(board)) isGameOver = true;
-    render();
-  }
-}
-
-function handleNewGame() {
-  let initialBoard = initializeBoard();
-  for (let i = 0; i < INITIAL_TILES; i++) initialBoard = addNewElement(initialBoard);
-  board = initialBoard;
-  score = 0;
-  isGameOver = false;
-  showHelp = false;
-  render();
-}
-
-function toggleHelp(force) {
-  showHelp = typeof force === 'boolean' ? force : !showHelp;
-  render();
 }
 
 /* ═══════════════════════ INPUT ═══════════════════════ */
@@ -641,7 +734,7 @@ document.getElementById('gameover-newgame-btn').addEventListener('click', handle
 document.getElementById('help-btn').addEventListener('click', () => toggleHelp());
 document.getElementById('help-close-btn').addEventListener('click', () => toggleHelp(false));
 
-render();
+startNewGame();
 </script>
 </body>
 </html>
