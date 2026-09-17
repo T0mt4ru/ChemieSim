@@ -144,6 +144,19 @@
   }
   .vergelijking strong { color: var(--text); font-weight: 700; }
   .vergelijking .netto { color: var(--accent); }
+  .vergelijking .enthalpie { color: #e6a84a; }
+  .vergelijking .toelichting {
+    display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--sans);
+    font-weight: 300;
+    font-size: 11.5px;
+    line-height: 1.6;
+    letter-spacing: normal;
+  }
 
   .stat-row {
     display: grid;
@@ -228,6 +241,16 @@
     text-align: right;
   }
 
+  .ctrl-sub {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted);
+    margin: -0.2rem 0 0.6rem 160px;
+    letter-spacing: 0.03em;
+  }
+  .ctrl-sub.up   { color: #e6a84a; }
+  .ctrl-sub.down { color: #6fb3e0; }
+
   .btns { display: flex; gap: 8px; margin: 1rem 0 0.5rem; flex-wrap: wrap; }
 
   .btn {
@@ -309,6 +332,7 @@
   @media (max-width: 560px) {
     .stat-row { grid-template-columns: repeat(3, 1fr); }
     .ctrl label { min-width: 110px; font-size: 10px; }
+    .ctrl-sub { margin-left: 0; }
   }
 </style>
 </head>
@@ -320,7 +344,7 @@
     <p class="sim-label">Chemisch evenwicht &mdash; Dynamisch evenwicht</p>
     <h1>I₂ + H₂ <span>⇌ 2 HI</span></h1>
     <p class="header-desc">
-      Dijood en waterstofgas ondergaan effectieve botsingen, vormen een geactiveerd complex en reageren tot waterstofjodide &mdash; en omgekeerd. Beide reacties blijven voortdurend doorgaan, ook wanneer de concentraties niet meer veranderen: een <strong>dynamisch evenwicht</strong>.
+      Dijood en waterstofgas ondergaan effectieve botsingen, vormen een geactiveerd complex en reageren tot waterstofjodide &mdash; en omgekeerd. Beide reacties blijven voortdurend doorgaan, ook wanneer de concentraties niet meer veranderen: een <strong>dynamisch evenwicht</strong>. De temperatuur bepaalt hier niet alleen hoe snel dat evenwicht zich instelt, maar ook <em>waar</em> het zich instelt.
     </p>
   </header>
 
@@ -329,7 +353,8 @@
     <div class="vergelijking">
       <strong>Heenreactie:</strong> I₂ + H₂ → [geactiveerd complex] → 2 HI<br>
       <strong>Terugreactie:</strong> 2 HI → [geactiveerd complex] → I₂ + H₂<br>
-      <strong>Netto:</strong> <span class="netto">I₂ + H₂ ⇌ 2 HI</span>
+      <strong>Netto:</strong> <span class="netto">I₂ + H₂ ⇌ 2 HI</span> &nbsp; <span class="enthalpie">ΔH ≈ −9,4 kJ/mol (licht exotherm)</span>
+      <span class="toelichting">De heenreactie (vorming van HI) is licht exotherm. Volgens het principe van Le Chatelier verschuift het evenwicht bij een <strong>hogere</strong> temperatuur dus naar de <strong>endotherme</strong> kant (terugreactie, meer I₂ + H₂), en bij een <strong>lagere</strong> temperatuur naar de <strong>exotherme</strong> kant (heenreactie, meer HI).</span>
     </div>
 
     <canvas id="sim-canvas" width="680" height="370"></canvas>
@@ -376,13 +401,15 @@
 
     <div class="ctrl">
       <label>Temperatuur</label>
-      <input type="range" id="sl-temp" min="1" max="10" value="5" step="1">
-      <span class="val-out" id="out-temp">medium</span>
+      <input type="range" id="sl-temp" min="1" max="11" value="6" step="1">
+      <span class="val-out" id="out-temp">700 K</span>
     </div>
+    <div class="ctrl-sub" id="temp-tendens">gebalanceerd evenwicht</div>
+
     <div class="ctrl">
-      <label>Ligging evenwicht (K)</label>
-      <input type="range" id="sl-ligging" min="1" max="10" value="5" step="1">
-      <span class="val-out" id="out-ligging">gebalanceerd</span>
+      <label>Simulatiesnelheid</label>
+      <input type="range" id="sl-speed" min="1" max="10" value="5" step="1">
+      <span class="val-out" id="out-speed">medium</span>
     </div>
 
     <div class="section-label">Verstoring (Le Chatelier) &mdash; tijdens simulatie</div>
@@ -440,12 +467,32 @@ let history=[], graphTimer=0;
 let logLines=[];
 
 function rnd(a,b){ return a+Math.random()*(b-a); }
-function getSpeed(){ return 0.55+parseInt(document.getElementById('sl-temp').value)*0.3; }
+
+// --- Simulatiesnelheid: puur visueel tempo, gekoppeld aan de "Simulatiesnelheid"-slider ---
+function getSpeed(){ return 0.55+parseInt(document.getElementById('sl-speed').value)*0.3; }
+
+// --- Temperatuur: echte Kelvinwaarde, in stappen van 100 K rond 700 K (slider 1..11) ---
+function getKelvin(){
+  const idx = parseInt(document.getElementById('sl-temp').value); // 1..11
+  return (idx+1)*100; // 200K .. 1200K, idx=6 -> 700K
+}
+
+// --- Ligging van het evenwicht, afgeleid uit de temperatuur (Le Chatelier) ---
+// De heenreactie (vorming van HI) is licht exotherm: een hogere temperatuur
+// verschuift het evenwicht dus naar de endotherme kant (terugreactie = meer reactanten),
+// een lagere temperatuur naar de exotherme kant (heenreactie = meer HI).
+// Ligging-schaal: 1 = sterk bij reactanten ... 10 = sterk bij product. 700K -> 5.5 (neutraal).
+function getLigging(){
+  const kelvin = getKelvin();
+  const deltaSteps = (kelvin-700)/100;           // -5 .. +5 t.o.v. 700K
+  let ligging = 5.5 - 0.55*deltaSteps;            // hogere T -> lagere ligging (meer reactanten)
+  return Math.min(10, Math.max(1, ligging));
+}
 
 function computeProbabilities(){
-  const temp = parseInt(document.getElementById('sl-temp').value);
-  const ligging = parseInt(document.getElementById('sl-ligging').value);
-  const base = 0.09 + temp*0.045;
+  const speed = parseInt(document.getElementById('sl-speed').value);
+  const ligging = getLigging();
+  const base = 0.09 + speed*0.045;
   const factorF = 0.3 + ligging*0.14;
   const factorR = 0.3 + (11-ligging)*0.14;
   let pF = base*factorF, pR = base*factorR;
@@ -490,7 +537,7 @@ function startSim(){
   for(let i=0;i<nH2;i++) molecules.push(makeMolecule('H2'));
   for(let i=0;i<nHI;i++) molecules.push(makeMolecule('HI'));
   updateStats();
-  addLog('Start: '+nI2+'× I₂, '+nH2+'× H₂, '+nHI+'× HI in het vat.');
+  addLog('Start: '+nI2+'× I₂, '+nH2+'× H₂, '+nHI+'× HI bij '+getKelvin()+' K.');
   loop();
 }
 
@@ -682,21 +729,37 @@ function drawGraph(){
   plot('hi','#5DCAA5');
 }
 
-const tempLabels=['','zeer traag','traag','medium-traag','medium','medium','medium-snel','snel','vrij snel','zeer snel','maximaal'];
-const liggingLabels=['','sterk bij reactanten','bij reactanten','licht bij reactanten','licht bij reactanten','gebalanceerd','gebalanceerd','licht bij product','bij product','sterk bij product','zeer sterk bij product'];
+// Labels voor de simulatiesnelheid-slider (puur visueel tempo)
+const speedLabels=['','zeer traag','traag','medium-traag','medium','medium','medium-snel','snel','vrij snel','zeer snel','maximaal'];
 
-document.getElementById('sl-temp').addEventListener('input',function(){
-  document.getElementById('out-temp').textContent=tempLabels[this.value]||this.value;
+// Labels voor de ligging van het evenwicht, afgeleid uit de temperatuur
+const liggingLabels=['','sterk bij reactanten (I₂ + H₂)','bij reactanten','licht bij reactanten','licht bij reactanten','gebalanceerd evenwicht','gebalanceerd evenwicht','licht bij product (HI)','bij product','sterk bij product','zeer sterk bij product'];
+
+function updateTempDisplay(){
+  const kelvin=getKelvin();
+  document.getElementById('out-temp').textContent=kelvin+' K';
+  const ligging=getLigging();
+  const idx=Math.round(ligging);
+  const el=document.getElementById('temp-tendens');
+  el.textContent=liggingLabels[idx]+(kelvin===700 ? ' (referentie 700 K)' : '');
+  el.classList.remove('up','down');
+  if(kelvin>700) el.classList.add('up');
+  else if(kelvin<700) el.classList.add('down');
+}
+
+document.getElementById('sl-temp').addEventListener('input', updateTempDisplay);
+
+document.getElementById('sl-speed').addEventListener('input',function(){
+  document.getElementById('out-speed').textContent=speedLabels[this.value]||this.value;
   const spd=getSpeed();
   molecules.forEach(m=>{ const cur=Math.hypot(m.vx,m.vy); if(cur>0.01){ m.vx=(m.vx/cur)*spd; m.vy=(m.vy/cur)*spd; } });
 });
-document.getElementById('sl-ligging').addEventListener('input',function(){
-  document.getElementById('out-ligging').textContent=liggingLabels[this.value]||this.value;
-});
+
 document.getElementById('sl-i2').addEventListener('input',function(){ document.getElementById('out-i2').textContent=this.value; });
 document.getElementById('sl-h2').addEventListener('input',function(){ document.getElementById('out-h2').textContent=this.value; });
 document.getElementById('sl-hi').addEventListener('input',function(){ document.getElementById('out-hi').textContent=this.value; });
 
+updateTempDisplay();
 drawBg();
 drawGraph();
 updateStats();
