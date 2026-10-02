@@ -67,6 +67,7 @@ select:focus{border-color:var(--accent)}
 .tips-box li::before{content:'→';position:absolute;left:0;color:var(--accent)}
 .restart-row{display:flex;justify-content:center;margin-top:2rem}
 footer{margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.fail{border-left:2px solid var(--coral);background:var(--surface);border-radius:0 10px 10px 0;padding:.7rem 1.25rem;margin-bottom:.5rem;font-size:13px;color:var(--coral);line-height:1.5}.frac.lost{background:rgba(240,128,107,.1);color:var(--coral);border-color:rgba(240,128,107,.3);text-decoration:line-through}
 </style>
 </head>
 <body>
@@ -131,25 +132,37 @@ function nieuweRonde(){
   START.forEach(c=>{if(!gezien.has(key(c))){gezien.add(key(c));uniek.push(c)}});
   ronde=shuffle(uniek).slice(0,5);alles=[];idx=0;start();
 }
-function start(){cur={queue:[ronde[idx]],steps:[]};renderProgress();renderStap()}
+function start(){cur={queue:[ronde[idx]],steps:[],fails:[]};renderProgress();renderStap()}
 function renderProgress(mode){
   document.getElementById("progress").innerHTML=ronde.map((_,i)=>`<div class="dot ${mode==="a"||i<idx?"done":i===idx?"current":""}"></div>`).join("");
 }
 const chips=(l,p)=>l.map(c=>`<span class="frac${c.length===1?" pure":""}">${nm(c)}</span>`).join("")||"";
 function opties(l){return `<option value="">— kies —</option>`+l.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join("")}
-function renderStap(){
-  const node=cur.queue[0];const orig=ronde[idx];
-  const gedaan=cur.steps.map((s,i)=>{
-    const lb=LAB[s.a.tech]||["fractie 1","fractie 2"];
-    return `<div class="done-step"><div class="ds-top">Stap ${i+1}: <b>${naam(TECH,s.a.tech)}</b> <em>op</em> ${nm(s.node)} <em>(${naam(PROPS,s.a.prop)})</em></div>
-    <div class="outs">${s.r.out.map((o,k)=>`<div class="out"><small>${lb[k]}</small><span class="frac${o.length===1?" pure":""}">${nm(o)}</span></div>`).join("")}</div></div>`}).join("");
-  const wacht=cur.queue.length>1?`<p class="hint" style="font-size:12px;color:var(--muted);margin-top:.9rem">Nog te scheiden daarna: ${cur.queue.slice(1).map(nm).join(" | ")}</p>`:"";
+function uitleg(r,t){
+  if(t==="chromatografie"||t==="adsorberen")return "Deze techniek is niet geschikt voor dit mengsel. Het mengsel blijft ongewijzigd.";
+  if(r.type==="homo")return t==="indampen"?"Beide vloeistoffen verdampen samen: er is geen scheiding. Het mengsel blijft ongewijzigd.":"Een oplossing is één fase: alles gaat door het filter of de zeef, of zet zich niet af. Het mengsel blijft ongewijzigd.";
+  if(t==="indampen"||t==="destilleren")return r.sub==="grof"?"Er is geen vloeistof om te verdampen. Het mengsel blijft ongewijzigd.":"Dit zou in theorie kunnen, maar is omslachtig en onnodig: een eenvoudigere techniek volstaat. Het mengsel blijft ongewijzigd.";
+  if(t==="zeven")return r.sub==="grof"?"De deeltjes zijn even groot en gaan allemaal door de zeef. Het mengsel blijft ongewijzigd.":"De vloeistof en de deeltjes gaan samen door de zeef. Het mengsel blijft ongewijzigd.";
+  return "Deze techniek scheidt dit mengsel niet. Het mengsel blijft ongewijzigd.";
+}
+const failHTML=(f,i)=>`<p class="fail"><i class="ti ti-x"></i> Poging ${i+1}: ${naam(TECH,f.a.tech)} &mdash; ${f.msg}</p>`;
+function stapHTML(s,i){
+  const t=s.forced?geldigeTechs(s).techs[0]:s.a.tech;
+  const lb=LAB[t]||["fractie 1","fractie 2"];
+  const lost=s.res==="verlies";
+  return s.fails.map(failHTML).join("")+`<div class="done-step"><div class="ds-top">Stap ${i+1}: <b>${naam(TECH,t)}</b> <em>op</em> ${nm(s.node)} <em>(${naam(PROPS,s.forced?PROP[t]:s.a.prop)})</em>${s.forced?` <em>&mdash; juiste techniek getoond na 3 pogingen</em>`:""}</div>
+  <div class="outs">${s.r.out.map((o,k)=>`<div class="out"><small>${lb[k]}${lost&&k===1?" — verloren":""}</small><span class="frac${o.length===1?" pure":""}${lost&&k===1?" lost":""}">${nm(o)}</span></div>`).join("")}</div></div>`;
+}
+function renderStap(prev){
+  const node=cur.queue[0],orig=ronde[idx];
+  const gedaan=cur.steps.map(stapHTML).join("")+cur.fails.map(failHTML).join("");
+  const wacht=cur.queue.length>1?`<p style="font-size:12px;color:var(--muted);margin-top:.9rem">Nog te scheiden daarna: ${cur.queue.slice(1).map(nm).join(" | ")}</p>`:"";
   document.getElementById("main").innerHTML=`
   <p class="q-label">Mengsel ${idx+1} van ${ronde.length}</p>
-  <div class="start"><div class="fracs">${orig.map(s=>`<span class="frac">${s}</span>`).join("<span style='color:var(--muted)'>+</span>")}</div></div>
+  <div class="start"><div class="fracs">${orig.map(x=>`<span class="frac">${x}</span>`).join("<span style='color:var(--muted)'>+</span>")}</div></div>
   ${gedaan}
   <div class="card">
-    <p class="q-label">Stap ${cur.steps.length+1} &mdash; te scheiden: ${nm(node)}</p>
+    <p class="q-label">Stap ${cur.steps.length+1} &mdash; te scheiden: ${nm(node)}${cur.fails.length?` (poging ${cur.fails.length+1} van 3)`:""}</p>
     <div class="field"><label class="fl" for="s-type">Soort mengsel</label><select id="s-type">${opties([["homo","Homogeen mengsel"],["hetero","Heterogeen mengsel"]])}</select></div>
     <div class="field"><label class="fl" for="s-sub">Specifieke benaming</label><select id="s-sub">${opties([["oplossing","Oplossing"]].concat(SUBS))}</select></div>
     <div class="field"><label class="fl" for="s-tech">Scheidingstechniek</label><select id="s-tech">${opties(TECH)}</select></div>
@@ -160,19 +173,31 @@ function renderStap(){
   const g=id=>document.getElementById(id);
   const upd=()=>{g("ok").disabled=!(g("s-type").value&&g("s-sub").value&&g("s-tech").value&&g("s-prop").value)};
   ["s-type","s-sub","s-tech","s-prop"].forEach(i=>g(i).addEventListener("change",upd));
+  if(prev){["type","sub","prop"].forEach(k=>g("s-"+k).value=prev[k]);upd()}
   g("ok").addEventListener("click",()=>{
     const a={type:g("s-type").value,sub:g("s-sub").value,tech:g("s-tech").value,prop:g("s-prop").value};
-    const r=R[key(node)];
-    cur.steps.push({node,a,r});cur.queue.shift();
-    r.out.forEach(o=>{if(o.length>=2){const o2=[...o];if(r.techs[0]==="extraheren")o2.hulp=true;cur.queue.push(o2)}});
-    if(cur.queue.length===0)klaarMengsel();else renderStap();
+    const r=R[key(node)],gt=geldigeTechs({node,r});
+    let res;
+    if(gt.techs.includes(a.tech))res="ok";
+    else if(gt.voorkeur==="destilleren"&&!gt.hulp&&a.tech==="indampen")res="verlies";
+    else res="geen";
+    if(res==="geen"){
+      cur.fails.push({a,msg:uitleg(r,a.tech)});
+      if(cur.fails.length>=3)voltooi(node,r,a,"geen",true);else renderStap(a);
+      return;
+    }
+    voltooi(node,r,a,res,false);
   });
+}
+function voltooi(node,r,a,res,forced){
+  cur.steps.push({node,a,r,res,forced,fails:cur.fails});cur.fails=[];cur.queue.shift();
+  r.out.forEach(o=>{if(o.length>=2){const o2=[...o];if(r.techs[0]==="extraheren")o2.hulp=true;cur.queue.push(o2)}});
+  if(cur.queue.length===0)klaarMengsel();else renderStap();
 }
 function klaarMengsel(){
   alles.push({mengsel:ronde[idx],steps:cur.steps});
   const laatste=idx===ronde.length-1;
-  const gedaan=cur.steps.map((s,i)=>`<div class="done-step"><div class="ds-top">Stap ${i+1}: <b>${naam(TECH,s.a.tech)}</b> <em>op</em> ${nm(s.node)}</div><div class="outs">${s.r.out.map((o,k)=>`<div class="out"><small>${(LAB[s.a.tech]||["fractie 1","fractie 2"])[k]}</small><span class="frac${o.length===1?" pure":""}">${nm(o)}</span></div>`).join("")}</div></div>`).join("");
-  document.getElementById("main").innerHTML=`<p class="q-label">Mengsel ${idx+1} van ${ronde.length} &mdash; alle bestanddelen gescheiden</p>${gedaan}
+  document.getElementById("main").innerHTML=`<p class="q-label">Mengsel ${idx+1} van ${ronde.length} &mdash; alle bestanddelen gescheiden</p>${cur.steps.map(stapHTML).join("")}
   <div class="actions"><button class="btn btn-primary" id="next">${laatste?"Bekijk analyse":"Volgend mengsel"} <i class="ti ti-arrow-right"></i></button></div>`;
   document.getElementById("next").addEventListener("click",()=>{if(laatste)renderAnalyse();else{idx++;start()}});
 }
@@ -191,7 +216,7 @@ function beoordeel(s){
 }
 function renderAnalyse(){
   renderProgress("a");
-  const fout={type:0,sub:0,tech:0,prop:0};let verlies=0;
+  const fout={type:0,sub:0,tech:0,prop:0};let verlies=0,pog=0;
   const kaarten=alles.map(m=>{
     let alleOk=true;
     const stappen=m.steps.map((s,i)=>{
@@ -202,14 +227,14 @@ function renderAnalyse(){
         else if(g.hulp&&a.tech==="destilleren")extra="Destilleren is niet fout, maar het water was hier als extractiemiddel toegevoegd en hoeft niet opgevangen te worden: indampen heeft de voorkeur.";
       }
       Object.keys(fout).forEach(k=>{if(!ok[k])fout[k]++});
-      if(!(ok.type&&ok.sub&&ok.tech&&ok.prop))alleOk=false;
+      if(!(ok.type&&ok.sub&&ok.tech&&ok.prop)||s.fails.length)alleOk=false;pog+=s.fails.length;
       const chip=(lbl,val,good,corr)=>`<div class="chip ${good?"ok":"nok"}">${lbl}: ${val}${good?"":`<small>correct: ${corr}</small>`}</div>`;
       return `<div class="rstep"><div class="rstep-h">Stap ${i+1}: ${nm(s.node)}</div><div class="chips">
         ${chip("Soort",a.type==="homo"?"homogeen":"heterogeen",ok.type,r.type==="homo"?"homogeen":"heterogeen")}
         ${chip("Benaming",naam(SUBS.concat([["oplossing","oplossing"]]),a.sub),ok.sub,naam(SUBS.concat([["oplossing","oplossing"]]),r.sub))}
         ${chip("Techniek",naam(TECH,a.tech),ok.tech,g.techs.map(t=>naam(TECH,t)).join(" of "))}
-        ${chip("Eigenschap",naam(PROPS,a.prop),ok.prop,validProps.map(p=>naam(PROPS,p)).join(" / "))}
-      </div>${r.note?`<p class="note"><i class="ti ti-info-circle"></i> ${r.note}</p>`:""}${extra?`<p class="note"><i class="ti ti-alert-triangle"></i> ${extra}</p>`:""}</div>`;
+        ${chip("Eigenschap",naam(PROPS,a.prop),ok.prop,validProps.map(p=>naam(PROPS,p)).join(" / "))}${s.fails.length?chip("Mislukte pogingen",s.fails.length,false,"0"):""}
+      </div>${r.note?`<p class="note"><i class="ti ti-info-circle"></i> ${r.note}</p>`:""}${extra?`<p class="note"><i class="ti ti-alert-triangle"></i> ${extra}</p>`:""}${s.forced?`<p class="note">Na 3 mislukte pogingen is het juiste antwoord getoond.</p>`:""}<div style="margin-top:.7rem">${s.fails.map(failHTML).join("")}</div></div>`;
     }).join("");
     m.ok=alleOk;
     return `<div class="result-card ${alleOk?"correct":"incorrect"}"><div class="result-top"><div class="fracs">${m.mengsel.map(s=>`<span class="frac">${s}</span>`).join("")}</div><span class="badge ${alleOk?"ok":"nok"}">${alleOk?"Correct":"Fout"}</span></div>${stappen}</div>`;
@@ -221,6 +246,7 @@ function renderAnalyse(){
     if(fout.type)tips.push(`Bij ${fout.type} stap(pen) was het soort mengsel fout. Homogeen: je ziet maar één fase (oplossing). Heterogeen: je kunt de bestanddelen onderscheiden.`);
     if(fout.sub)tips.push(`Bij ${fout.sub} stap(pen) klopte de benaming niet. Vaste stof in vaste stof = grof mengsel, vaste stof in vloeistof = suspensie, vloeistof in vloeistof (niet mengbaar) = emulsie, vloeistof of vaste stof in gas = nevel.`);
     if(fout.tech)tips.push(`Bij ${fout.tech} stap(pen) was de techniek niet geschikt. Vraag je af: lost een stof op, is een stof vast of vloeibaar, en hoe verschillen de kookpunten?`);
+    if(pog)tips.push(`Je had ${pog} mislukte poging(en): de gekozen techniek scheidde het mengsel niet. Bekijk eerst hoeveel fasen je ziet en welke bestanddelen oplossen, vast of vloeibaar zijn, voor je een techniek kiest.`);
     if(verlies)tips.push(`Bij ${verlies} stap(pen) koos je indampen terwijl het water al in het oorspronkelijke mengsel zat. Dan gaat een bestanddeel verloren: kies destilleren om het water op te vangen. Indampen is alleen de eerste keuze als het water zelf als extractiemiddel werd toegevoegd.`);
     if(fout.prop)tips.push(`Bij ${fout.prop} stap(pen) klopte de stofeigenschap niet. Zeven en filtreren = deeltjesgrootte, centrifugeren en decanteren = massadichtheid, extraheren = oplosbaarheid, destilleren en indampen = kookpunt.`);
   }
