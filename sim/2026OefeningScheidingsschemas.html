@@ -9,65 +9,420 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <style>
-:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2330;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);--accent:#5DCAA5;--accent2:#378ADD;--amber:#e6a84a;--coral:#f0806b;--text:#e6edf3;--muted:#768390;--tag-bg:rgba(93,202,165,.12);--mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(93,202,165,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(93,202,165,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 1.5rem 5rem}
-header{padding:3rem 0 2rem;border-bottom:1px solid var(--border2);margin-bottom:2.5rem}
-.back-link{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;margin-bottom:1.5rem}
-.back-link:hover{color:var(--accent)}
-.site-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
-.site-label::before{content:'';width:24px;height:1px;background:var(--accent)}
-h1{font-family:var(--mono);font-size:clamp(1.6rem,4.5vw,2.5rem);font-weight:700;line-height:1.1;letter-spacing:-.02em;margin-bottom:1rem}
-h1 span{color:var(--accent)}
-.header-desc{font-size:.95rem;font-weight:300;color:var(--muted);max-width:560px;line-height:1.7}
-.progress{display:flex;gap:8px;margin-top:1.75rem}
-.dot{width:30px;height:6px;border-radius:3px;background:var(--surface2);border:1px solid var(--border2)}
-.dot.done{background:var(--accent);border-color:var(--accent)}.dot.current{background:var(--accent2);border-color:var(--accent2)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-bottom:1rem}
-.q-label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
-.frac{display:inline-block;font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:6px;background:rgba(55,138,221,.1);color:#7ab8ef;border:1px solid rgba(55,138,221,.25)}
-.frac.pure{background:var(--tag-bg);color:var(--accent);border-color:rgba(93,202,165,.3)}
-.fracs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.start{margin-bottom:1.25rem}
-.start .frac{font-size:15px;padding:8px 14px}
-.done-step{border-left:2px solid var(--accent);background:var(--surface);border-radius:0 10px 10px 0;padding:1rem 1.25rem;margin-bottom:.75rem}
-.ds-top{font-size:13px;margin-bottom:.7rem}.ds-top b{font-family:var(--mono);color:var(--accent)}.ds-top em{color:var(--muted);font-style:normal}
-.outs{display:flex;flex-wrap:wrap;gap:1.25rem}
-.out small{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:5px}
-.field{margin-bottom:1rem}
-label.fl{display:block;font-size:13px;color:var(--muted);margin-bottom:.4rem}
-select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:14px;padding:.7rem .9rem;outline:none}
-select:focus{border-color:var(--accent)}
-.actions{display:flex;justify-content:flex-end;margin-top:1.5rem}
-.btn{font-family:var(--mono);font-size:13px;font-weight:700;border:none;border-radius:8px;padding:.75rem 1.5rem;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.btn-primary{background:var(--accent);color:#08130f}.btn-primary:disabled{opacity:.35;cursor:default}
-.btn-secondary{background:transparent;border:1px solid var(--border2);color:var(--muted)}.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
-.score-banner{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem 2rem;margin-bottom:1.5rem}
-.score-num{font-family:var(--mono);font-size:2.4rem;font-weight:700;color:var(--accent);line-height:1}
-.score-sub{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:4px}
-.result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1rem}
-.result-card.correct{border-color:rgba(93,202,165,.35)}.result-card.incorrect{border-color:rgba(240,128,107,.3)}
-.result-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:1rem;flex-wrap:wrap}
-.badge{font-family:var(--mono);font-size:10px;text-transform:uppercase;padding:3px 9px;border-radius:99px}
-.badge.ok{background:rgba(93,202,165,.14);color:var(--accent)}.badge.nok{background:rgba(240,128,107,.14);color:var(--coral)}
-.rstep{border-top:1px solid var(--border);padding-top:.9rem;margin-top:.9rem}
-.rstep-h{font-size:13px;color:var(--muted);margin-bottom:.6rem}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font-family:var(--mono);font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid;line-height:1.3}
-.chip small{display:block;font-size:9px;opacity:.85}
-.chip.ok{background:rgba(93,202,165,.1);color:var(--accent);border-color:rgba(93,202,165,.25)}
-.chip.nok{background:rgba(240,128,107,.1);color:var(--coral);border-color:rgba(240,128,107,.25)}
-.note{font-size:12px;color:var(--amber);margin-top:.7rem}
-.tips-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem 2rem;margin:2rem 0}
-.tips-box h3{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:1rem}
-.tips-box ul{list-style:none}
-.tips-box li{font-size:13.5px;font-weight:300;line-height:1.7;padding-left:1.4em;position:relative;margin-bottom:.5rem}
-.tips-box li::before{content:'→';position:absolute;left:0;color:var(--accent)}
-.restart-row{display:flex;justify-content:center;margin-top:2rem}
-footer{margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border);text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
-.fail{border-left:2px solid var(--coral);background:var(--surface);border-radius:0 10px 10px 0;padding:.7rem 1.25rem;margin-bottom:.5rem;font-size:13px;color:var(--coral);line-height:1.5}.frac.lost{background:rgba(240,128,107,.1);color:var(--coral);border-color:rgba(240,128,107,.3);text-decoration:line-through}
+    :root{
+        --bg:#0d1117;
+        --surface:#161b22;
+        --surface2:#1c2330;
+        --border:rgba(255,255,255,.07);
+        --border2:rgba(255,255,255,.13);
+        --accent:#5DCAA5;
+        --accent2:#378ADD;
+        --amber:#e6a84a;
+        --coral:#f0806b;
+        --text:#e6edf3;
+        --muted:#768390;
+        --tag-bg:rgba(93,202,165,.12);
+        --mono:'Space Mono',monospace;
+        --sans:'DM Sans',sans-serif;
+    }
+    *,*::before,*::after{
+        box-sizing:border-box;
+        margin:0;
+        padding:0;
+    }
+    body{
+        font-family:var(--sans);
+        background:var(--bg);
+        color:var(--text);
+        min-height:100vh;
+        overflow-x:hidden;
+    }
+    body::before{
+        content:'';
+        position:fixed;
+        inset:0;
+        background-image:linear-gradient(rgba(93,202,165,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(93,202,165,.03) 1px,transparent 1px);
+        background-size:40px 40px;
+        pointer-events:none;
+        z-index:0;
+    }
+    .wrap{
+        position:relative;
+        z-index:1;
+        max-width:760px;
+        margin:0 auto;
+        padding:0 1.5rem 5rem;
+    }
+    header{
+        padding:3rem 0 2rem;
+        border-bottom:1px solid var(--border2);
+        margin-bottom:2.5rem;
+    }
+    .back-link{
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        font-family:var(--mono);
+        font-size:11px;
+        color:var(--muted);
+        text-decoration:none;
+        margin-bottom:1.5rem;
+    }
+    .back-link:hover{
+        color:var(--accent);
+    }
+    .site-label{
+        font-family:var(--mono);
+        font-size:11px;
+        letter-spacing:.18em;
+        color:var(--accent);
+        text-transform:uppercase;
+        margin-bottom:1rem;
+        display:flex;
+        align-items:center;
+        gap:8px;
+    }
+    .site-label::before{
+        content:'';
+        width:24px;
+        height:1px;
+        background:var(--accent);
+    }
+    h1{
+        font-family:var(--mono);
+        font-size:clamp(1.6rem,4.5vw,2.5rem);
+        font-weight:700;
+        line-height:1.1;
+        letter-spacing:-.02em;
+        margin-bottom:1rem;
+    }
+    h1 span{
+        color:var(--accent);
+    }
+    .header-desc{
+        font-size:.95rem;
+        font-weight:300;
+        color:var(--muted);
+        max-width:560px;
+        line-height:1.7;
+    }
+    .progress{
+        display:flex;
+        gap:8px;
+        margin-top:1.75rem;
+    }
+    .dot{
+        width:30px;
+        height:6px;
+        border-radius:3px;
+        background:var(--surface2);
+        border:1px solid var(--border2);
+    }
+    .dot.done{
+        background:var(--accent);
+        border-color:var(--accent);
+    }
+    .dot.current{
+        background:var(--accent2);
+        border-color:var(--accent2);
+    }
+    .card{
+        background:var(--surface);
+        border:1px solid var(--border);
+        border-radius:14px;
+        padding:1.75rem;
+        margin-bottom:1rem;
+    }
+    .q-label{
+        font-family:var(--mono);
+        font-size:11px;
+        letter-spacing:.1em;
+        text-transform:uppercase;
+        color:var(--muted);
+        margin-bottom:1rem;
+    }
+    .frac{
+        display:inline-block;
+        font-family:var(--mono);
+        font-size:12px;
+        padding:5px 10px;
+        border-radius:6px;
+        background:rgba(55,138,221,.1);
+        color:#7ab8ef;
+        border:1px solid rgba(55,138,221,.25);
+    }
+    .frac.pure{
+        background:var(--tag-bg);
+        color:var(--accent);
+        border-color:rgba(93,202,165,.3);
+    }
+    .fracs{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:center;
+    }
+    .start{
+        margin-bottom:1.25rem;
+    }
+    .start .frac{
+        font-size:15px;
+        padding:8px 14px;
+    }
+    .done-step{
+        border-left:2px solid var(--accent);
+        background:var(--surface);
+        border-radius:0 10px 10px 0;
+        padding:1rem 1.25rem;
+        margin-bottom:.75rem;
+    }
+    .ds-top{
+        font-size:13px;
+        margin-bottom:.7rem;
+    }
+    .ds-top b{
+        font-family:var(--mono);
+        color:var(--accent);
+    }
+    .ds-top em{
+        color:var(--muted);
+        font-style:normal;
+    }
+    .outs{
+        display:flex;
+        flex-wrap:wrap;
+        gap:1.25rem;
+    }
+    .out small{
+        display:block;
+        font-family:var(--mono);
+        font-size:10px;
+        color:var(--muted);
+        margin-bottom:5px;
+    }
+    .field{
+        margin-bottom:1rem;
+    }
+    label.fl{
+        display:block;
+        font-size:13px;
+        color:var(--muted);
+        margin-bottom:.4rem;
+    }
+    select{
+        width:100%;
+        background:var(--surface2);
+        border:1px solid var(--border2);
+        border-radius:8px;
+        color:var(--text);
+        font-family:var(--sans);
+        font-size:14px;
+        padding:.7rem .9rem;
+        outline:none;
+    }
+    select:focus{
+        border-color:var(--accent);
+    }
+    .actions{
+        display:flex;
+        justify-content:flex-end;
+        margin-top:1.5rem;
+    }
+    .btn{
+        font-family:var(--mono);
+        font-size:13px;
+        font-weight:700;
+        border:none;
+        border-radius:8px;
+        padding:.75rem 1.5rem;
+        cursor:pointer;
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+    }
+    .btn-primary{
+        background:var(--accent);
+        color:#08130f;
+    }
+    .btn-primary:disabled{
+        opacity:.35;
+        cursor:default;
+    }
+    .btn-secondary{
+        background:transparent;
+        border:1px solid var(--border2);
+        color:var(--muted);
+    }
+    .btn-secondary:hover{
+        border-color:var(--accent);
+        color:var(--accent);
+    }
+    .score-banner{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background:var(--surface);
+        border:1px solid var(--border);
+        border-radius:14px;
+        padding:1.75rem 2rem;
+        margin-bottom:1.5rem;
+    }
+    .score-num{
+        font-family:var(--mono);
+        font-size:2.4rem;
+        font-weight:700;
+        color:var(--accent);
+        line-height:1;
+    }
+    .score-sub{
+        font-family:var(--mono);
+        font-size:11px;
+        text-transform:uppercase;
+        letter-spacing:.1em;
+        color:var(--muted);
+        margin-top:4px;
+    }
+    .result-card{
+        background:var(--surface);
+        border:1px solid var(--border);
+        border-radius:12px;
+        padding:1.5rem;
+        margin-bottom:1rem;
+    }
+    .result-card.correct{
+        border-color:rgba(93,202,165,.35);
+    }
+    .result-card.incorrect{
+        border-color:rgba(240,128,107,.3);
+    }
+    .result-top{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:1rem;
+        gap:1rem;
+        flex-wrap:wrap;
+    }
+    .badge{
+        font-family:var(--mono);
+        font-size:10px;
+        text-transform:uppercase;
+        padding:3px 9px;
+        border-radius:99px;
+    }
+    .badge.ok{
+        background:rgba(93,202,165,.14);
+        color:var(--accent);
+    }
+    .badge.nok{
+        background:rgba(240,128,107,.14);
+        color:var(--coral);
+    }
+    .rstep{
+        border-top:1px solid var(--border);
+        padding-top:.9rem;
+        margin-top:.9rem;
+    }
+    .rstep-h{
+        font-size:13px;
+        color:var(--muted);
+        margin-bottom:.6rem;
+    }
+    .chips{
+        display:flex;
+        flex-wrap:wrap;
+        gap:6px;
+    }
+    .chip{
+        font-family:var(--mono);
+        font-size:11px;
+        padding:5px 9px;
+        border-radius:6px;
+        border:1px solid;
+        line-height:1.3;
+    }
+    .chip small{
+        display:block;
+        font-size:9px;
+        opacity:.85;
+    }
+    .chip.ok{
+        background:rgba(93,202,165,.1);
+        color:var(--accent);
+        border-color:rgba(93,202,165,.25);
+    }
+    .chip.nok{
+        background:rgba(240,128,107,.1);
+        color:var(--coral);
+        border-color:rgba(240,128,107,.25);
+    }
+    .note{
+        font-size:12px;
+        color:var(--amber);
+        margin-top:.7rem;
+    }
+    .tips-box{
+        background:var(--surface);
+        border:1px solid var(--border);
+        border-radius:14px;
+        padding:1.75rem 2rem;
+        margin:2rem 0;
+    }
+    .tips-box h3{
+        font-family:var(--mono);
+        font-size:12px;
+        text-transform:uppercase;
+        letter-spacing:.1em;
+        color:var(--accent);
+        margin-bottom:1rem;
+    }
+    .tips-box ul{
+        list-style:none;
+    }
+    .tips-box li{
+        font-size:13.5px;
+        font-weight:300;
+        line-height:1.7;
+        padding-left:1.4em;
+        position:relative;
+        margin-bottom:.5rem;
+    }
+    .tips-box li::before{
+        content:'→';
+        position:absolute;
+        left:0;
+        color:var(--accent);
+    }
+    .restart-row{
+        display:flex;
+        justify-content:center;
+        margin-top:2rem;
+    }
+    footer{
+        margin-top:4rem;
+        padding-top:2rem;
+        border-top:1px solid var(--border);
+        text-align:center;
+        font-family:var(--mono);
+        font-size:11px;
+        color:var(--muted);
+    }
+    .fail{
+        border-left:2px solid var(--coral);
+        background:var(--surface);
+        border-radius:0 10px 10px 0;
+        padding:.7rem 1.25rem;
+        margin-bottom:.5rem;
+        font-size:13px;
+        color:var(--coral);
+        line-height:1.5;
+    }
+    .frac.lost{
+        background:rgba(240,128,107,.1);
+        color:var(--coral);
+        border-color:rgba(240,128,107,.3);
+        text-decoration:line-through;
+    }
 </style>
 </head>
 <body>
@@ -83,53 +438,128 @@ footer{margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border);text-
 <footer>ChemieSim &middot; Scheidingstechnieken oefening</footer>
 </div>
 <script>
-const TECH=[["zeven","Zeven"],["filtreren","Filtreren"],["centrifugeren","Centrifugeren"],["chromatografie","Chromatografie"],["extraheren","Extraheren"],["adsorberen","Adsorberen"],["decanteren","Decanteren"],["destilleren","Destilleren"],["indampen","In- of uitdampen"]];
-const PROPS=[["deeltjesgrootte","Deeltjesgrootte"],["massadichtheid","Verschil in massadichtheid"],["adsorptievermogen","Adsorptievermogen"],["oplosbaarheid","Oplosbaarheid"],["kookpunt","Verschil in kookpunt"]];
-const SUBS=[["grof","Grof mengsel"],["suspensie","Suspensie"],["emulsie","Emulsie"],["nevel","Nevel"]];
-const PROP={zeven:"deeltjesgrootte",filtreren:"deeltjesgrootte",centrifugeren:"massadichtheid",decanteren:"massadichtheid",extraheren:"oplosbaarheid",destilleren:"kookpunt",indampen:"kookpunt"};
-const LAB={zeven:["residu (zeefrest)","zeefdoorval"],filtreren:["residu","filtraat"],centrifugeren:["bezinksel","centrifugaat"],decanteren:["onderste laag","bovenste laag"],destilleren:["residu","destillaat"],indampen:["residu","damp"],extraheren:["residu","extract"]};
-const nm=a=>a.join(" + ");
-const naam=(l,v)=>(l.find(x=>x[0]===v)||[0,v])[1];
-const key=a=>[...a].sort().join("+");
-const R={};
-function add(c,type,sub,techs,out,note){R[key(c)]={c,type,sub,techs,out,note}}
-const SUSP=["filtreren","centrifugeren","decanteren"],EMU=["decanteren","centrifugeren"],OPL=["indampen","destilleren"];
-const EXT="Water wordt als hulpstof toegevoegd: zout/suiker lost op in water, zand niet.";
-add(["zand","water"],"hetero","suspensie",SUSP,[["zand"],["water"]]);
-add(["zand","ethanol"],"hetero","suspensie",SUSP,[["zand"],["ethanol"]]);
-add(["zand","olie"],"hetero","suspensie",SUSP,[["zand"],["olie"]]);
-add(["olie","water"],"hetero","emulsie",EMU,[["water"],["olie"]]);
-add(["zout","water"],"homo","oplossing",OPL,[["zout"],["water"]]);
-add(["suiker","water"],"homo","oplossing",OPL,[["suiker"],["water"]]);
-add(["ethanol","water"],"homo","oplossing",["destilleren"],[["water"],["ethanol"]],"Ethanol heeft het laagste kookpunt en verdampt dus eerst.");
-add(["zand","zout"],"hetero","grof",["extraheren"],[["zand"],["zout","water"]],EXT);
-add(["zand","suiker"],"hetero","grof",["extraheren"],[["zand"],["suiker","water"]],EXT);
-add(["zand","zout","water"],"hetero","suspensie",SUSP,[["zand"],["zout","water"]]);
-add(["zand","suiker","water"],"hetero","suspensie",SUSP,[["zand"],["suiker","water"]]);
-add(["zand","ethanol","water"],"hetero","suspensie",SUSP,[["zand"],["ethanol","water"]]);
-add(["olie","ethanol","water"],"hetero","emulsie",EMU,[["ethanol","water"],["olie"]]);
-add(["olie","zout","water"],"hetero","emulsie",EMU,[["zout","water"],["olie"]]);
-add(["olie","suiker","water"],"hetero","emulsie",EMU,[["suiker","water"],["olie"]]);
-const ZV=["zeven"],EXT2="Water wordt als hulpstof toegevoegd: zout/suiker lost op in water, bloem niet.";
-add(["kiezelsteentjes","zand"],"hetero","grof",ZV,[["kiezelsteentjes"],["zand"]]);
-add(["kiezelsteentjes","bloem"],"hetero","grof",ZV,[["kiezelsteentjes"],["bloem"]]);
-add(["bloem","water"],"hetero","suspensie",SUSP,[["bloem"],["water"]]);
-add(["bloem","ethanol"],"hetero","suspensie",SUSP,[["bloem"],["ethanol"]]);
-add(["bloem","zout"],"hetero","grof",["extraheren"],[["bloem"],["zout","water"]],EXT2);
-add(["bloem","suiker"],"hetero","grof",["extraheren"],[["bloem"],["suiker","water"]],EXT2);
-add(["kiezelsteentjes","zand","zout"],"hetero","grof",ZV,[["kiezelsteentjes"],["zand","zout"]]);
-add(["kiezelsteentjes","zand","suiker"],"hetero","grof",ZV,[["kiezelsteentjes"],["zand","suiker"]]);
-add(["kiezelsteentjes","bloem","zout"],"hetero","grof",ZV,[["kiezelsteentjes"],["bloem","zout"]]);
-add(["bloem","zout","water"],"hetero","suspensie",SUSP,[["bloem"],["zout","water"]]);
-add(["bloem","suiker","water"],"hetero","suspensie",SUSP,[["bloem"],["suiker","water"]]);
-add(["bloem","ethanol","water"],"hetero","suspensie",SUSP,[["bloem"],["ethanol","water"]]);
-const START=Object.values(R).map(r=>r.c);
+/* ══════════════════════════════════════════════════════════
+   1. KEUZELIJSTEN  [waarde, weergavenaam]
+   ══════════════════════════════════════════════════════════ */
+const TECHNIEKEN = [
+  ["zeven","Zeven"], ["filtreren","Filtreren"], ["centrifugeren","Centrifugeren"],
+  ["chromatografie","Chromatografie"], ["extraheren","Extraheren"], ["adsorberen","Adsorberen"],
+  ["decanteren","Decanteren"], ["destilleren","Destilleren"], ["indampen","In- of uitdampen"]
+];
+const STOFEIGENSCHAPPEN = [
+  ["deeltjesgrootte","Deeltjesgrootte"], ["massadichtheid","Verschil in massadichtheid"],
+  ["adsorptievermogen","Adsorptievermogen"], ["oplosbaarheid","Oplosbaarheid"],
+  ["kookpunt","Verschil in kookpunt"],
+  ["vluchtigheid","Verschil in vluchtigheid"]
+];
+const BENAMINGEN = [
+  ["grof","Grof mengsel"], ["suspensie","Suspensie"], ["emulsie","Emulsie"], ["nevel","Nevel"]
+];
+
+/* ══════════════════════════════════════════════════════════
+   2. KOPPELINGEN
+   ══════════════════════════════════════════════════════════ */
+/* Welke stofeigenschap hoort bij welke techniek */
+const EIGENSCHAP_BIJ_TECHNIEK = {
+  zeven:"deeltjesgrootte", filtreren:"deeltjesgrootte",
+  centrifugeren:"massadichtheid", decanteren:"massadichtheid",
+  extraheren:"oplosbaarheid",
+  destilleren:"kookpunt", indampen:"vluchtigheid"
+};
+/* Namen van de twee uitgaande fracties per techniek: [eerste, tweede] */
+const FRACTIELABELS = {
+  zeven:["residu (zeefrest)","zeefdoorval"], filtreren:["residu","filtraat"],
+  centrifugeren:["bezinksel","centrifugaat"], decanteren:["onderste laag","bovenste laag"],
+  destilleren:["residu","destillaat"], indampen:["residu","damp"], extraheren:["residu","extract"]
+};
+
+/* ══════════════════════════════════════════════════════════
+   3. HULPFUNCTIES
+   ══════════════════════════════════════════════════════════ */
+const nm   = a => a.join(" + ");
+const naam = (lijst,waarde) => (lijst.find(x => x[0] === waarde) || [0,waarde])[1];
+const key  = a => [...a].sort().join("+");
+
+/* ══════════════════════════════════════════════════════════
+   4. GELDIGE TECHNIEKEN PER SOORT SCHEIDING
+   ══════════════════════════════════════════════════════════ */
+const ZEVEN       = ["zeven"];
+const EXTRAHEREN  = ["extraheren"];
+const DESTILLEREN = ["destilleren"];
+const SUSPENSIE   = ["filtreren","centrifugeren","decanteren"];
+const EMULSIE     = ["decanteren","centrifugeren"];
+const OPLOSSING   = ["indampen","destilleren"];
+
+/* Uitleg die bij de extractiestap getoond wordt */
+const NOTITIE_EXTRACTIE_ZAND  = "Water wordt als hulpstof toegevoegd: zout/suiker lost op in water, zand niet.";
+const NOTITIE_EXTRACTIE_BLOEM = "Water wordt als hulpstof toegevoegd: zout/suiker lost op in water, bloem niet.";
+const NOTITIE_EXTRACTIE_OLIE  = "Water wordt als hulpstof toegevoegd: zout lost op in water en niet in olie.";
+const NOTITIE_DESTILLATIE_ETHANOL = "Ethanol heeft het laagste kookpunt en verdampt dus eerst.";
+
+/* ══════════════════════════════════════════════════════════
+   5. RECEPTEN
+   add(bestanddelen, soort, benaming, geldigeTechnieken, uitgaandeFracties, notitie, alt)
+   uitgaandeFracties = [eerste fractie, tweede fractie]; elke fractie is een lijst bestanddelen.
+   Fracties met 2 of meer bestanddelen moeten zelf weer een recept hebben.
+   alt = optioneel {techniek:{out,note}} voor een techniek met een andere uitkomst dan uitgaandeFracties.
+   ══════════════════════════════════════════════════════════ */
+const RECEPTEN = {};
+function add(c,type,sub,techs,out,note,alt){ RECEPTEN[key(c)] = {c,type,sub,techs,out,note,alt}; }
+
+/* ── Twee bestanddelen: suspensies (vaste stof + vloeistof) ── */
+add(["zand","water"],      "hetero","suspensie",SUSPENSIE,[["zand"],["water"]]);
+add(["zand","ethanol"],    "hetero","suspensie",SUSPENSIE,[["zand"],["ethanol"]]);
+add(["zand","olie"],       "hetero","suspensie",SUSPENSIE,[["zand"],["olie"]]);
+add(["bloem","water"],     "hetero","suspensie",SUSPENSIE,[["bloem"],["water"]]);
+add(["bloem","ethanol"],   "hetero","suspensie",SUSPENSIE,[["bloem"],["ethanol"]]);
+/* zout + olie: filtreren/centrifugeren/decanteren, of extraheren met water (zout lost op, olie niet) */
+add(["zout","olie"],       "hetero","suspensie",SUSPENSIE.concat(EXTRAHEREN),[["zout"],["olie"]],undefined,
+    {extraheren:{out:[["olie"],["zout","water"]],note:NOTITIE_EXTRACTIE_OLIE}});
+
+/* ── Twee bestanddelen: emulsie (twee niet-mengbare vloeistoffen) ── */
+add(["olie","water"],      "hetero","emulsie",EMULSIE,[["water"],["olie"]]);
+
+/* ── Twee bestanddelen: oplossingen ── */
+add(["zout","water"],      "homo","oplossing",OPLOSSING,[["zout"],["water"]]);
+add(["suiker","water"],    "homo","oplossing",OPLOSSING,[["suiker"],["water"]]);
+add(["ethanol","water"],   "homo","oplossing",DESTILLEREN,[["water"],["ethanol"]],NOTITIE_DESTILLATIE_ETHANOL);
+
+/* ── Twee bestanddelen: grove mengsels (vaste stof + vaste stof) ── */
+add(["kiezelsteentjes","zand"],  "hetero","grof",ZEVEN,[["kiezelsteentjes"],["zand"]]);
+add(["kiezelsteentjes","bloem"], "hetero","grof",ZEVEN,[["kiezelsteentjes"],["bloem"]]);
+add(["zand","zout"],             "hetero","grof",EXTRAHEREN,[["zand"],["zout","water"]],   NOTITIE_EXTRACTIE_ZAND);
+add(["zand","suiker"],           "hetero","grof",EXTRAHEREN,[["zand"],["suiker","water"]], NOTITIE_EXTRACTIE_ZAND);
+add(["bloem","zout"],            "hetero","grof",EXTRAHEREN,[["bloem"],["zout","water"]],  NOTITIE_EXTRACTIE_BLOEM);
+add(["bloem","suiker"],          "hetero","grof",EXTRAHEREN,[["bloem"],["suiker","water"]],NOTITIE_EXTRACTIE_BLOEM);
+
+/* ── Drie bestanddelen: suspensies ── */
+add(["zand","zout","water"],     "hetero","suspensie",SUSPENSIE,[["zand"],["zout","water"]]);
+add(["zand","suiker","water"],   "hetero","suspensie",SUSPENSIE,[["zand"],["suiker","water"]]);
+add(["zand","ethanol","water"],  "hetero","suspensie",SUSPENSIE,[["zand"],["ethanol","water"]]);
+add(["bloem","zout","water"],    "hetero","suspensie",SUSPENSIE,[["bloem"],["zout","water"]]);
+add(["bloem","suiker","water"],  "hetero","suspensie",SUSPENSIE,[["bloem"],["suiker","water"]]);
+add(["bloem","ethanol","water"], "hetero","suspensie",SUSPENSIE,[["bloem"],["ethanol","water"]]);
+
+/* ── Drie bestanddelen: emulsies ── */
+add(["olie","ethanol","water"],  "hetero","emulsie",EMULSIE,[["ethanol","water"],["olie"]]);
+add(["olie","zout","water"],     "hetero","emulsie",EMULSIE,[["zout","water"],["olie"]]);
+add(["olie","suiker","water"],   "hetero","emulsie",EMULSIE,[["suiker","water"],["olie"]]);
+
+/* ── Drie bestanddelen: grove mengsels (eerst zeven, dan extraheren) ── */
+add(["kiezelsteentjes","zand","zout"],   "hetero","grof",ZEVEN,[["kiezelsteentjes"],["zand","zout"]]);
+add(["kiezelsteentjes","zand","suiker"], "hetero","grof",ZEVEN,[["kiezelsteentjes"],["zand","suiker"]]);
+add(["kiezelsteentjes","bloem","zout"],  "hetero","grof",ZEVEN,[["kiezelsteentjes"],["bloem","zout"]]);
+
+/* ══════════════════════════════════════════════════════════
+   6. MOGELIJKE STARTMENGSELS (alle recepten komen in aanmerking)
+   ══════════════════════════════════════════════════════════ */
+const STARTMENGSELS = Object.values(RECEPTEN).map(r => r.c);
 
 let ronde=[],idx=0,cur=null,alles=[];
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 function nieuweRonde(){
   const uniek=[];const gezien=new Set();
-  START.forEach(c=>{if(!gezien.has(key(c))){gezien.add(key(c));uniek.push(c)}});
+  STARTMENGSELS.forEach(c=>{if(!gezien.has(key(c))){gezien.add(key(c));uniek.push(c)}});
   ronde=shuffle(uniek).slice(0,5);alles=[];idx=0;start();
 }
 function start(){cur={queue:[ronde[idx]],steps:[],fails:[]};renderProgress();renderStap()}
@@ -145,13 +575,13 @@ function uitleg(r,t){
   if(t==="zeven")return r.sub==="grof"?"De deeltjes zijn even groot en gaan allemaal door de zeef. Het mengsel blijft ongewijzigd.":"De vloeistof en de deeltjes gaan samen door de zeef. Het mengsel blijft ongewijzigd.";
   return "Deze techniek scheidt dit mengsel niet. Het mengsel blijft ongewijzigd.";
 }
-const failHTML=(f,i)=>`<p class="fail"><i class="ti ti-x"></i> Poging ${i+1}: ${naam(TECH,f.a.tech)} &mdash; ${f.msg}</p>`;
+const failHTML=(f,i)=>`<p class="fail"><i class="ti ti-x"></i> Poging ${i+1}: ${naam(TECHNIEKEN,f.a.tech)} &mdash; ${f.msg}</p>`;
 function stapHTML(s,i){
   const t=s.forced?geldigeTechs(s).techs[0]:s.a.tech;
-  const lb=LAB[t]||["fractie 1","fractie 2"];
+  const lb=FRACTIELABELS[t]||["fractie 1","fractie 2"];
   const lost=s.res==="verlies";
-  return s.fails.map(failHTML).join("")+`<div class="done-step"><div class="ds-top">Stap ${i+1}: <b>${naam(TECH,t)}</b> <em>op</em> ${nm(s.node)} <em>(${naam(PROPS,s.forced?PROP[t]:s.a.prop)})</em>${s.forced?` <em>&mdash; juiste techniek getoond na 3 pogingen</em>`:""}</div>
-  <div class="outs">${s.r.out.map((o,k)=>`<div class="out"><small>${lb[k]}${lost&&k===1?" — verloren":""}</small><span class="frac${o.length===1?" pure":""}${lost&&k===1?" lost":""}">${nm(o)}</span></div>`).join("")}</div></div>`;
+  return s.fails.map(failHTML).join("")+`<div class="done-step"><div class="ds-top">Stap ${i+1}: <b>${naam(TECHNIEKEN,t)}</b> <em>op</em> ${nm(s.node)} <em>(${naam(STOFEIGENSCHAPPEN,s.forced?EIGENSCHAP_BIJ_TECHNIEK[t]:s.a.prop)})</em>${s.forced?` <em>&mdash; juiste techniek getoond na 3 pogingen</em>`:""}</div>
+  <div class="outs">${s.uit.map((o,k)=>`<div class="out"><small>${lb[k]}${lost&&k===1?" — verloren":""}</small><span class="frac${o.length===1?" pure":""}${lost&&k===1?" lost":""}">${nm(o)}</span></div>`).join("")}</div></div>`;
 }
 function renderStap(prev){
   const node=cur.queue[0],orig=ronde[idx];
@@ -164,9 +594,9 @@ function renderStap(prev){
   <div class="card">
     <p class="q-label">Stap ${cur.steps.length+1} &mdash; te scheiden: ${nm(node)}${cur.fails.length?` (poging ${cur.fails.length+1} van 3)`:""}</p>
     <div class="field"><label class="fl" for="s-type">Soort mengsel</label><select id="s-type">${opties([["homo","Homogeen mengsel"],["hetero","Heterogeen mengsel"]])}</select></div>
-    <div class="field"><label class="fl" for="s-sub">Specifieke benaming</label><select id="s-sub">${opties([["oplossing","Oplossing"]].concat(SUBS))}</select></div>
-    <div class="field"><label class="fl" for="s-tech">Scheidingstechniek</label><select id="s-tech">${opties(TECH)}</select></div>
-    <div class="field"><label class="fl" for="s-prop">Gebruikte stofeigenschap</label><select id="s-prop">${opties(PROPS)}</select></div>
+    <div class="field"><label class="fl" for="s-sub">Specifieke benaming</label><select id="s-sub">${opties([["oplossing","Oplossing"]].concat(BENAMINGEN))}</select></div>
+    <div class="field"><label class="fl" for="s-tech">Scheidingstechniek</label><select id="s-tech">${opties(TECHNIEKEN)}</select></div>
+    <div class="field"><label class="fl" for="s-prop">Gebruikte stofeigenschap</label><select id="s-prop">${opties(STOFEIGENSCHAPPEN)}</select></div>
     <div class="actions"><button class="btn btn-primary" id="ok" disabled>Bevestig stap <i class="ti ti-check"></i></button></div>
     ${wacht}
   </div>`;
@@ -176,7 +606,7 @@ function renderStap(prev){
   if(prev){["type","sub","prop"].forEach(k=>g("s-"+k).value=prev[k]);upd()}
   g("ok").addEventListener("click",()=>{
     const a={type:g("s-type").value,sub:g("s-sub").value,tech:g("s-tech").value,prop:g("s-prop").value};
-    const r=R[key(node)],gt=geldigeTechs({node,r});
+    const r=RECEPTEN[key(node)],gt=geldigeTechs({node,r});
     let res;
     if(gt.techs.includes(a.tech))res="ok";
     else if(gt.voorkeur==="destilleren"&&!gt.hulp&&a.tech==="indampen")res="verlies";
@@ -190,8 +620,10 @@ function renderStap(prev){
   });
 }
 function voltooi(node,r,a,res,forced){
-  cur.steps.push({node,a,r,res,forced,fails:cur.fails});cur.fails=[];cur.queue.shift();
-  r.out.forEach(o=>{if(o.length>=2){const o2=[...o];if(r.techs[0]==="extraheren")o2.hulp=true;cur.queue.push(o2)}});
+  const t=forced?geldigeTechs({node,r}).techs[0]:a.tech;
+  const uit=(r.alt&&r.alt[t]&&r.alt[t].out)||r.out;
+  cur.steps.push({node,a,r,res,forced,fails:cur.fails,uit});cur.fails=[];cur.queue.shift();
+  uit.forEach(o=>{if(o.length>=2){const o2=[...o];if(t==="extraheren"||(node.hulp&&o.includes("water")))o2.hulp=true;cur.queue.push(o2)}});
   if(cur.queue.length===0)klaarMengsel();else renderStap();
 }
 function klaarMengsel(){
@@ -208,10 +640,10 @@ function geldigeTechs(s){
 }
 function beoordeel(s){
   const r=s.r,a=s.a,g=geldigeTechs(s);
-  const validProps=[...new Set(g.techs.map(t=>PROP[t]))];
+  const validProps=[...new Set(g.techs.map(t=>EIGENSCHAP_BIJ_TECHNIEK[t]))];
   const ok={type:a.type===r.type,sub:a.sub===r.sub,tech:g.techs.includes(a.tech),prop:validProps.includes(a.prop)};
-  ok.all=ok.type&&ok.sub&&ok.tech&&ok.prop&&PROP[a.tech]===a.prop;
-  if(ok.tech&&PROP[a.tech]!==a.prop)ok.prop=false;
+  ok.all=ok.type&&ok.sub&&ok.tech&&ok.prop&&EIGENSCHAP_BIJ_TECHNIEK[a.tech]===a.prop;
+  if(ok.tech&&EIGENSCHAP_BIJ_TECHNIEK[a.tech]!==a.prop)ok.prop=false;
   return {ok,validProps,g};
 }
 function renderAnalyse(){
@@ -221,7 +653,7 @@ function renderAnalyse(){
     let alleOk=true;
     const stappen=m.steps.map((s,i)=>{
       const {ok,validProps,g}=beoordeel(s);const a=s.a,r=s.r;
-      let extra="";
+      const nt=(r.alt&&r.alt[a.tech]&&r.alt[a.tech].note)||r.note;let extra="";
       if(g.voorkeur){
         if(!g.hulp&&a.tech==="indampen"){verlies++;extra="Bij indampen verdwijnt het water uit het oorspronkelijke mengsel in de lucht. Bij destilleren vang je het op als destillaat.";}
         else if(g.hulp&&a.tech==="destilleren")extra="Destilleren is niet fout, maar het water was hier als extractiemiddel toegevoegd en hoeft niet opgevangen te worden: indampen heeft de voorkeur.";
@@ -231,10 +663,10 @@ function renderAnalyse(){
       const chip=(lbl,val,good,corr)=>`<div class="chip ${good?"ok":"nok"}">${lbl}: ${val}${good?"":`<small>correct: ${corr}</small>`}</div>`;
       return `<div class="rstep"><div class="rstep-h">Stap ${i+1}: ${nm(s.node)}</div><div class="chips">
         ${chip("Soort",a.type==="homo"?"homogeen":"heterogeen",ok.type,r.type==="homo"?"homogeen":"heterogeen")}
-        ${chip("Benaming",naam(SUBS.concat([["oplossing","oplossing"]]),a.sub),ok.sub,naam(SUBS.concat([["oplossing","oplossing"]]),r.sub))}
-        ${chip("Techniek",naam(TECH,a.tech),ok.tech,g.techs.map(t=>naam(TECH,t)).join(" of "))}
-        ${chip("Eigenschap",naam(PROPS,a.prop),ok.prop,validProps.map(p=>naam(PROPS,p)).join(" / "))}${s.fails.length?chip("Mislukte pogingen",s.fails.length,false,"0"):""}
-      </div>${r.note?`<p class="note"><i class="ti ti-info-circle"></i> ${r.note}</p>`:""}${extra?`<p class="note"><i class="ti ti-alert-triangle"></i> ${extra}</p>`:""}${s.forced?`<p class="note">Na 3 mislukte pogingen is het juiste antwoord getoond.</p>`:""}<div style="margin-top:.7rem">${s.fails.map(failHTML).join("")}</div></div>`;
+        ${chip("Benaming",naam(BENAMINGEN.concat([["oplossing","oplossing"]]),a.sub),ok.sub,naam(BENAMINGEN.concat([["oplossing","oplossing"]]),r.sub))}
+        ${chip("Techniek",naam(TECHNIEKEN,a.tech),ok.tech,g.techs.map(t=>naam(TECHNIEKEN,t)).join(" of "))}
+        ${chip("Eigenschap",naam(STOFEIGENSCHAPPEN,a.prop),ok.prop,validProps.map(p=>naam(STOFEIGENSCHAPPEN,p)).join(" / "))}${s.fails.length?chip("Mislukte pogingen",s.fails.length,false,"0"):""}
+      </div>${nt?`<p class="note"><i class="ti ti-info-circle"></i> ${nt}</p>`:""}${extra?`<p class="note"><i class="ti ti-alert-triangle"></i> ${extra}</p>`:""}${s.forced?`<p class="note">Na 3 mislukte pogingen is het juiste antwoord getoond.</p>`:""}<div style="margin-top:.7rem">${s.fails.map(failHTML).join("")}</div></div>`;
     }).join("");
     m.ok=alleOk;
     return `<div class="result-card ${alleOk?"correct":"incorrect"}"><div class="result-top"><div class="fracs">${m.mengsel.map(s=>`<span class="frac">${s}</span>`).join("")}</div><span class="badge ${alleOk?"ok":"nok"}">${alleOk?"Correct":"Fout"}</span></div>${stappen}</div>`;
@@ -248,7 +680,7 @@ function renderAnalyse(){
     if(fout.tech)tips.push(`Bij ${fout.tech} stap(pen) was de techniek niet geschikt. Vraag je af: lost een stof op, is een stof vast of vloeibaar, en hoe verschillen de kookpunten?`);
     if(pog)tips.push(`Je had ${pog} mislukte poging(en): de gekozen techniek scheidde het mengsel niet. Bekijk eerst hoeveel fasen je ziet en welke bestanddelen oplossen, vast of vloeibaar zijn, voor je een techniek kiest.`);
     if(verlies)tips.push(`Bij ${verlies} stap(pen) koos je indampen terwijl het water al in het oorspronkelijke mengsel zat. Dan gaat een bestanddeel verloren: kies destilleren om het water op te vangen. Indampen is alleen de eerste keuze als het water zelf als extractiemiddel werd toegevoegd.`);
-    if(fout.prop)tips.push(`Bij ${fout.prop} stap(pen) klopte de stofeigenschap niet. Zeven en filtreren = deeltjesgrootte, centrifugeren en decanteren = massadichtheid, extraheren = oplosbaarheid, destilleren en indampen = kookpunt.`);
+    if(fout.prop)tips.push(`Bij ${fout.prop} stap(pen) klopte de stofeigenschap niet. Zeven en filtreren = deeltjesgrootte, centrifugeren en decanteren = massadichtheid, extraheren = oplosbaarheid, destilleren = verschil in kookpunt, indampen = verschil in vluchtigheid.`);
   }
   document.getElementById("main").innerHTML=`
   <div class="score-banner"><div><div class="score-num">${n} / ${alles.length}</div><div class="score-sub">Schema's volledig correct</div></div><i class="ti ti-filter" style="font-size:2.4rem;color:var(--accent);opacity:.6"></i></div>
