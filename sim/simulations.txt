@@ -1,1 +1,7 @@
+De sim folder bevat alle simulaties als afzonderlijke webpagina. Iedere simulatie is zo apart to bewaren en lokaal te gebruiken.
+De enige uitzondering is de molaire massa calculator, die offline wel werkt, maar de data voor triviale namen niet, aangezien deze data zich in een aparte folder bevind.
 
+-={Design philosophy}=-
+1. Iedere simulatie is een opzichzelf bestaande webpagina.
+2. Iedere simulatie is apart te bewaren en lokaal/offline te gebruiken in een browser.
+3. Visualisatie is bij de simulaties het belangrijkste doel.
