@@ -50,20 +50,10 @@
   .leg-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--muted)}
   .leg-dot{width:10px;height:10px;border-radius:50%}
   .note{font-size:12px;font-weight:300;color:var(--muted);margin-top:.75rem;line-height:1.6}
-  .q{margin-top:1rem}
-  .q-title{font-size:.85rem;color:var(--text);margin-bottom:.5rem}
-  .opts{display:flex;flex-wrap:wrap;gap:8px}
-  .opt{display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer}
-  .opt input{accent-color:var(--accent)}
-  .opt.ok{border-color:var(--accent);background:var(--tag-bg)}
-  .opt.no{border-color:var(--bad);background:rgba(255,123,114,.1)}
-  .fb{font-size:13px;font-weight:300;line-height:1.65;margin-top:.5rem;min-height:1.2em}
-  .fb.good{color:var(--accent)} .fb.bad{color:var(--bad)}
-  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
   footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
   .footer-brand{font-family:var(--mono);font-size:12px;color:var(--muted)} .footer-brand strong{color:var(--accent)}
   .footer-note{font-size:12px;color:var(--muted);font-weight:300}
-  @media(max-width:720px){.flasks,.qgrid{grid-template-columns:1fr}}
+  @media(max-width:720px){.flasks{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -74,12 +64,12 @@
     <p class="sim-label">Zuren en basen &mdash; Chemisch evenwicht</p>
     <h1>Zwak zuur HA <span>vs.</span> sterk zuur HCl</h1>
     <p class="header-desc">
-      Twee gesloten erlenmeyers, elk gestart met 10 zuurmoleculen in water. Bekijk het deeltjesmodel bij evenwicht, benoem de deeltjes en leid de uitdrukking van K<sub>z</sub> af.
+      Twee gesloten erlenmeyers, elk gestart met 10 zuurmoleculen in water. Bekijk het deeltjesmodel bij evenwicht en vergelijk de aantallen deeltjes en de bijhorende K<sub>z</sub>.
     </p>
   </header>
 
   <div class="panel">
-    <p class="task"><strong>a</strong> Bekijk het deeltjesmodel bij evenwicht &nbsp;·&nbsp; <strong>b</strong> Benoem de deeltjes in elke erlenmeyer &nbsp;·&nbsp; <strong>c</strong> Bepaal de uitdrukking van K<sub>z</sub> van elk zuur.</p>
+    <p class="task"><strong>Bekijk</strong> het deeltjesmodel bij evenwicht van beide oplossingen en vergelijk de aantallen deeltjes.</p>
     <div class="flasks">
       <div class="flask">
         <h2>Zwak zuur: HA + H₂O ⇌ H₃O⁺ + A⁻</h2>
@@ -110,26 +100,6 @@
     <p class="note">Water is het oplosmiddel en niet individueel getekend (het blauwe vlak). Laat de simulatie een tijdje lopen: de gemiddelde aantallen geven het deeltjesmodel bij evenwicht. De erlenmeyers zijn gesloten, dus er gaat geen stof verloren.</p>
   </div>
 
-  <div class="panel">
-    <h3>b &mdash; Welke deeltjes zijn aanwezig bij evenwicht?</h3>
-    <div class="qgrid">
-      <div class="q"><p class="q-title">Erlenmeyer met HA</p><div class="opts" id="b1"></div></div>
-      <div class="q"><p class="q-title">Erlenmeyer met HCl</p><div class="opts" id="b2"></div></div>
-    </div>
-    <div class="controls"><button class="btn" id="chk-b"><i class="ti ti-check"></i> Controleer</button></div>
-    <p class="fb" id="fb-b" aria-live="polite"></p>
-  </div>
-
-  <div class="panel">
-    <h3>c &mdash; Kies de uitdrukking van K<sub>z</sub></h3>
-    <div class="qgrid">
-      <div class="q"><p class="q-title">K<sub>z</sub> van HA</p><div class="opts" id="k1"></div></div>
-      <div class="q"><p class="q-title">K<sub>z</sub> van HCl</p><div class="opts" id="k2"></div></div>
-    </div>
-    <div class="controls"><button class="btn" id="chk-c"><i class="ti ti-check"></i> Controleer</button></div>
-    <p class="fb" id="fb-c" aria-live="polite"></p>
-  </div>
-
   <footer>
     <span class="footer-brand"><strong>ChemieSim</strong> &mdash; Interactieve leeromgeving</span>
     <span class="footer-note">Simulatie werkt volledig in de browser &mdash; geen installatie nodig.</span>
@@ -146,9 +116,9 @@ function mkFlask(cid,nid,o){
   const cv=document.getElementById(cid);
   return {cv,ctx:cv.getContext('2d'),nEl:document.getElementById(nid),o,parts:[],avg:{}};
 }
-// kf/kb: kans per beeld (dt=1). Zwak: evenwicht ≈ 8 HA, 2 H3O+, 2 A-. Sterk: bijna volledig gesplitst.
+// kf/kb: kans per beeld (dt=1). Zwak: evenwicht ≈ 7 HA, 3 H3O+, 3 A- (30 % geïoniseerd). Sterk: bijna volledig gesplitst.
 const F=[
-  mkFlask('c1','n1',{kf:0.004,kb:0.008,col:'#ce93d8',an:'A',hz:'HA',weak:true}),
+  mkFlask('c1','n1',{kf:0.004,kb:0.0031,col:'#ce93d8',an:'A',hz:'HA',weak:true}),
   mkFlask('c2','n2',{kf:0.05,kb:0.00005,col:'#5DCAA5',an:'Cl',hz:'HCl',weak:false})
 ];
 
@@ -183,7 +153,7 @@ function step(f,dt){
     const hl=half(p.y)-13,dx=p.x-CX;
     if(Math.abs(dx)>hl){p.x=CX+Math.sign(dx)*hl;p.vx=-Math.sign(dx)*Math.abs(p.vx)}
   });
-  // voorwaarts: HA + H2O -> H3O+ + A-
+  // heenreactie: HA + H2O -> H3O+ + A-
   const nU=f.parts.filter(p=>p.t==='U');
   nU.forEach(p=>{
     if(rnd()<o.kf*dt){
@@ -195,7 +165,7 @@ function step(f,dt){
       f.parts.push(q);
     }
   });
-  // achterwaarts: H3O+ + A- -> HA + H2O (snelheid ~ [H3O+][A-])
+  // terugreqctie: H3O+ + A- -> HA + H2O (snelheid ~ [H3O+][A-])
   const hs=f.parts.filter(p=>p.t==='H3O'),as=f.parts.filter(p=>p.t==='N');
   if(hs.length&&as.length&&rnd()<o.kb*hs.length*as.length*dt){
     const h=hs[Math.floor(rnd()*hs.length)];
@@ -217,7 +187,7 @@ function counters(f){
     kz=`K<sub>z</sub> = [H₃O⁺]·[${o.an}⁻] / [${o.hz}] met [${o.hz}] ≈ 0 → <b class="kz">K<sub>z</sub> zeer groot</b>`;
   } else {
     const k=a.U>0.05?(a.H3O*a.N)/a.U:Infinity;
-    kz=`K<sub>z</sub> ≈ n(H₃O⁺)·n(${o.an}⁻) / n(${o.hz}) = (${fmt(a.H3O)}·${fmt(a.N)}) / ${fmt(a.U)} = <b class="kz">${isFinite(k)?fmt(k):'∞'}</b> <span style="opacity:.7">(in aantallen; deel door V voor concentraties)</span>`;
+    kz=`K<sub>z</sub> ≈ n(H₃O⁺)·n(${o.an}⁻) / n(${o.hz}) = (${fmt(a.H3O)}·${fmt(a.N)}) / ${fmt(a.U)} = <b class="kz">${isFinite(k)?fmt(k):'∞'}</b>`;
   }
   f.nEl.innerHTML=
    `Nu: ${o.hz} <b>${U}</b> · H₃O⁺ <b>${H}</b> · ${o.an}⁻ <b>${N}</b><br>`+
@@ -240,7 +210,7 @@ function draw(f){
   c.fillStyle='rgba(79,195,247,0.16)'; c.fillRect(0,YT-10,W,H);
   c.restore();
   flaskPath(c); c.strokeStyle='rgba(255,255,255,0.45)'; c.lineWidth=2; c.stroke();
-  c.fillStyle='rgba(255,255,255,0.28)'; c.fillRect(CX-40,10,80,16); // stop: gesloten
+  c.fillStyle='rgba(255,255,255,0.28)'; c.fillRect(CX-40,10,80,16); // stop: gesloten want anders verdampt de simulatie!
   c.strokeStyle='rgba(79,195,247,0.5)'; c.lineWidth=1;
   c.beginPath();c.moveTo(CX-half(YT-10),YT-10);c.lineTo(CX+half(YT-10),YT-10);c.stroke();
   f.parts.forEach(p=>{
@@ -276,56 +246,6 @@ document.getElementById('btn-play').onclick=()=>{
 };
 document.getElementById('btn-reset').onclick=resetSim;
 document.getElementById('spd').oninput=e=>{speed=+e.target.value;document.getElementById('spd-val').textContent=speed+'×'};
-
-// ── Vragen b en c ──
-const SPECIES=[['H2O','H₂O'],['HA','HA'],['A','A⁻'],['HCl','HCl'],['Cl','Cl⁻'],['H3O','H₃O⁺'],['Hp','H⁺ (vrij)']];
-const ANS={b1:['H2O','HA','A','H3O'],b2:['H2O','H3O','Cl']};
-function buildB(id){
-  document.getElementById(id).innerHTML=SPECIES.map(([k,l])=>
-    `<label class="opt" data-k="${k}"><input type="checkbox" value="${k}"> ${l}</label>`).join('');
-}
-buildB('b1');buildB('b2');
-const shuffle=a=>a.map(x=>[rnd(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
-const KZ={
-  k1:[['[H₃O⁺]·[A⁻] / [HA]',1],['[HA] / ([H₃O⁺]·[A⁻])',0],['[H₃O⁺]·[A⁻] / ([HA]·[H₂O])',0],['[H₃O⁺] / [HA]',0]],
-  k2:[['[H₃O⁺]·[Cl⁻] / [HCl]',1],['[H₃O⁺]·[Cl⁻]',0],['[HCl] / ([H₃O⁺]·[Cl⁻])',0],['[H₃O⁺]·[Cl⁻] / ([HCl]·[H₂O])',0]]
-};
-Object.keys(KZ).forEach(id=>{
-  document.getElementById(id).innerHTML=shuffle(KZ[id]).map(([l,ok])=>
-    `<label class="opt" data-ok="${ok}"><input type="radio" name="${id}"> ${l}</label>`).join('');
-});
-
-document.getElementById('chk-b').onclick=()=>{
-  const miss=[],extra=[];let all=true;
-  ['b1','b2'].forEach(id=>{
-    const name=id==='b1'?'HA':'HCl';
-    document.querySelectorAll('#'+id+' .opt').forEach(l=>{
-      const k=l.dataset.k,on=l.querySelector('input').checked,should=ANS[id].includes(k);
-      const lbl=SPECIES.find(s=>s[0]===k)[1];
-      l.className='opt'+(on&&should?' ok':(on!==should?' no':''));
-      if(on!==should){all=false;(should?miss:extra).push(`${lbl} (${name}-erlenmeyer)`)}
-    });
-  });
-  const fb=document.getElementById('fb-b');
-  if(all){fb.className='fb good';fb.textContent='Juist! Zwak zuur: HA, A⁻, H₃O⁺ en H₂O, met veel ongesplitste HA. Sterk zuur: enkel H₃O⁺, Cl⁻ en H₂O, want alle HCl is gesplitst.'}
-  else{fb.className='fb bad';fb.textContent='Nog niet helemaal.'+(miss.length?' Ontbreekt: '+miss.join(', ')+'.':'')+(extra.length?' Te veel of fout aangeduid: '+extra.join(', ')+'.':'')+' Kijk naar wat er in de simulatie rondzweeft.'}
-};
-document.getElementById('chk-c').onclick=()=>{
-  let all=true,none=false;
-  ['k1','k2'].forEach(id=>{
-    const sel=[...document.querySelectorAll('#'+id+' .opt')];
-    if(!sel.some(l=>l.querySelector('input').checked)) none=true;
-    sel.forEach(l=>{
-      const on=l.querySelector('input').checked,ok=l.dataset.ok==='1';
-      l.className='opt'+(ok&&on?' ok':(on&&!ok?' no':''));
-      if(on!==ok)all=false;
-    });
-  });
-  const fb=document.getElementById('fb-c');
-  if(none){fb.className='fb bad';fb.textContent='Kies eerst een uitdrukking voor beide zuren.';return}
-  if(all){fb.className='fb good';fb.innerHTML='Juist! Water is het oplosmiddel en staat niet in K<sub>z</sub>. Voor HA uit de tekening: (2·2)/8 ≈ 0,5 in aantallen, dus een kleine K<sub>z</sub>. Voor HCl is de noemer ≈ 0 (alle 10 HCl gesplitst), dus K<sub>z</sub> is zeer groot.'}
-  else{fb.className='fb bad';fb.innerHTML='Nog niet helemaal. Denk aan de vorm K<sub>z</sub> = [producten] / [reagentia], zonder het oplosmiddel water.'}
-};
 
 resetSim();
 </script>
