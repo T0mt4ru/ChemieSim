@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zwak en sterk zuur — ChemieSim</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --bg:#0d1117; --surface:#161b22; --surface2:#1c2330;
+    --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+    --accent:#5DCAA5; --accent2:#378ADD; --text:#e6edf3; --muted:#768390;
+    --tag-bg:rgba(93,202,165,0.12); --bad:#ff7b72;
+    --mono:'Space Mono',monospace; --sans:'DM Sans',sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(93,202,165,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(93,202,165,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 1.5rem 5rem}
+  .nav-back{padding:1.5rem 0 0;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;letter-spacing:.1em;transition:color .2s}
+  .nav-back:hover{color:var(--accent)}
+  header{padding:2rem 0 1.75rem;border-bottom:1px solid var(--border2);margin-bottom:2rem}
+  .sim-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--accent);text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;gap:8px}
+  .sim-label::before{content:'';width:24px;height:1px;background:var(--accent)}
+  h1{font-family:var(--mono);font-size:clamp(1.5rem,4vw,2.2rem);font-weight:700;line-height:1.15;letter-spacing:-.02em;margin-bottom:.6rem}
+  h1 span{color:var(--accent)}
+  .header-desc{font-size:.9rem;font-weight:300;color:var(--muted);line-height:1.7;max-width:560px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.25rem}
+  .task{font-size:.9rem;font-weight:300;color:var(--muted);line-height:1.7}
+  .task strong{color:var(--text);font-weight:500}
+  .flasks{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1rem}
+  .flask h2,.panel h3{font-family:var(--mono);font-size:13px;font-weight:700;margin-bottom:.6rem}
+  canvas{display:block;border-radius:10px;border:1px solid var(--border2);background:#0a1628;margin:0 auto;max-width:100%;height:auto}
+  .counter{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);line-height:1.9}
+  .counter b{color:var(--text);font-weight:700}
+  .kz{color:var(--accent)}
+  .controls{display:flex;align-items:center;gap:12px;margin-top:1.1rem;flex-wrap:wrap}
+  .btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:background .2s,color .2s}
+  .btn:hover{background:var(--surface2);color:var(--text)}
+  .btn.active{background:var(--tag-bg);color:var(--accent);border-color:rgba(93,202,165,.35)}
+  .btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .slider-row{display:flex;align-items:center;gap:10px;flex:1;min-width:200px}
+  .slider-row label,.slider-row span{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+  .slider-row span{color:var(--accent);min-width:34px;text-align:right}
+  .slider-row input{flex:1;accent-color:var(--accent)}
+  .legend{display:flex;gap:14px;margin-top:.9rem;flex-wrap:wrap}
+  .leg-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+  .leg-dot{width:10px;height:10px;border-radius:50%}
+  .note{font-size:12px;font-weight:300;color:var(--muted);margin-top:.75rem;line-height:1.6}
+  .q{margin-top:1rem}
+  .q-title{font-size:.85rem;color:var(--text);margin-bottom:.5rem}
+  .opts{display:flex;flex-wrap:wrap;gap:8px}
+  .opt{display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border2);border-radius:8px;font-family:var(--mono);font-size:12px;color:var(--text);cursor:pointer}
+  .opt input{accent-color:var(--accent)}
+  .opt.ok{border-color:var(--accent);background:var(--tag-bg)}
+  .opt.no{border-color:var(--bad);background:rgba(255,123,114,.1)}
+  .fb{font-size:13px;font-weight:300;line-height:1.65;margin-top:.5rem;min-height:1.2em}
+  .fb.good{color:var(--accent)} .fb.bad{color:var(--bad)}
+  .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+  footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+  .footer-brand{font-family:var(--mono);font-size:12px;color:var(--muted)} .footer-brand strong{color:var(--accent)}
+  .footer-note{font-size:12px;color:var(--muted);font-weight:300}
+  @media(max-width:720px){.flasks,.qgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="nav-back" href="../index.html"><i class="ti ti-arrow-left"></i> Terug naar overzicht</a>
+
+  <header>
+    <p class="sim-label">Zuren en basen &mdash; Chemisch evenwicht</p>
+    <h1>Zwak zuur HA <span>vs.</span> sterk zuur HCl</h1>
+    <p class="header-desc">
+      Twee gesloten erlenmeyers, elk gestart met 10 zuurmoleculen in water. Bekijk het deeltjesmodel bij evenwicht, benoem de deeltjes en leid de uitdrukking van K<sub>z</sub> af.
+    </p>
+  </header>
+
+  <div class="panel">
+    <p class="task"><strong>a</strong> Bekijk het deeltjesmodel bij evenwicht &nbsp;·&nbsp; <strong>b</strong> Benoem de deeltjes in elke erlenmeyer &nbsp;·&nbsp; <strong>c</strong> Bepaal de uitdrukking van K<sub>z</sub> van elk zuur.</p>
+    <div class="flasks">
+      <div class="flask">
+        <h2>Zwak zuur: HA + H₂O ⇌ H₃O⁺ + A⁻</h2>
+        <canvas id="c1" width="320" height="370" aria-label="Erlenmeyer met zwak zuur HA"></canvas>
+        <div class="counter" id="n1"></div>
+      </div>
+      <div class="flask">
+        <h2>Sterk zuur: HCl + H₂O → H₃O⁺ + Cl⁻</h2>
+        <canvas id="c2" width="320" height="370" aria-label="Erlenmeyer met sterk zuur HCl"></canvas>
+        <div class="counter" id="n2"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn active" id="btn-play"><i class="ti ti-player-play"></i> Start</button>
+      <button class="btn" id="btn-reset"><i class="ti ti-refresh"></i> Reset</button>
+      <div class="slider-row">
+        <label for="spd">Snelheid</label>
+        <input type="range" id="spd" min="1" max="10" step="1" value="3">
+        <span id="spd-val">3×</span>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#ffffff"></div> H (in HA of HCl)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ff5252"></div> H₃O⁺</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ce93d8"></div> A⁻ / A in HA</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#5DCAA5"></div> Cl⁻ / Cl in HCl</div>
+    </div>
+    <p class="note">Water is het oplosmiddel en niet individueel getekend (het blauwe vlak). Laat de simulatie een tijdje lopen: de gemiddelde aantallen geven het deeltjesmodel bij evenwicht. De erlenmeyers zijn gesloten, dus er gaat geen stof verloren.</p>
+  </div>
+
+  <div class="panel">
+    <h3>b &mdash; Welke deeltjes zijn aanwezig bij evenwicht?</h3>
+    <div class="qgrid">
+      <div class="q"><p class="q-title">Erlenmeyer met HA</p><div class="opts" id="b1"></div></div>
+      <div class="q"><p class="q-title">Erlenmeyer met HCl</p><div class="opts" id="b2"></div></div>
+    </div>
+    <div class="controls"><button class="btn" id="chk-b"><i class="ti ti-check"></i> Controleer</button></div>
+    <p class="fb" id="fb-b" aria-live="polite"></p>
+  </div>
+
+  <div class="panel">
+    <h3>c &mdash; Kies de uitdrukking van K<sub>z</sub></h3>
+    <div class="qgrid">
+      <div class="q"><p class="q-title">K<sub>z</sub> van HA</p><div class="opts" id="k1"></div></div>
+      <div class="q"><p class="q-title">K<sub>z</sub> van HCl</p><div class="opts" id="k2"></div></div>
+    </div>
+    <div class="controls"><button class="btn" id="chk-c"><i class="ti ti-check"></i> Controleer</button></div>
+    <p class="fb" id="fb-c" aria-live="polite"></p>
+  </div>
+
+  <footer>
+    <span class="footer-brand"><strong>ChemieSim</strong> &mdash; Interactieve leeromgeving</span>
+    <span class="footer-note">Simulatie werkt volledig in de browser &mdash; geen installatie nodig.</span>
+  </footer>
+</div>
+
+<script>
+const W=320,H=370,CX=160,YT=185,YB=334,N0=10;
+const half=y=>y<90?34:(y<320?34+(y-90)/230*84:118-(y-320)*1.3);
+const rnd=Math.random;
+let playing=false,last=0,raf=null,speed=3;
+
+function mkFlask(cid,nid,o){
+  const cv=document.getElementById(cid);
+  return {cv,ctx:cv.getContext('2d'),nEl:document.getElementById(nid),o,parts:[],avg:{}};
+}
+// kf/kb: kans per beeld (dt=1). Zwak: evenwicht ≈ 8 HA, 2 H3O+, 2 A-. Sterk: bijna volledig gesplitst.
+const F=[
+  mkFlask('c1','n1',{kf:0.004,kb:0.008,col:'#ce93d8',an:'A',hz:'HA',weak:true}),
+  mkFlask('c2','n2',{kf:0.05,kb:0.00005,col:'#5DCAA5',an:'Cl',hz:'HCl',weak:false})
+];
+
+function place(p){
+  p.y=YT+14+rnd()*(YB-YT-28);
+  const h=half(p.y)-14; p.x=CX+(rnd()*2-1)*h;
+}
+function mk(t){
+  const a=rnd()*6.283,s=.5+rnd()*.6;
+  const p={t,x:0,y:0,vx:Math.cos(a)*s,vy:Math.sin(a)*s,a:rnd()*6.283,va:(rnd()-.5)*.05};
+  place(p); return p;
+}
+function resetSim(){
+  F.forEach(f=>{
+    f.parts=[]; for(let i=0;i<N0;i++) f.parts.push(mk('U'));
+    f.avg={U:N0,H3O:0,N:0};
+  });
+  if(raf)cancelAnimationFrame(raf);
+  playing=false; setBtn(); render();
+}
+function cnt(f,t){return f.parts.reduce((s,p)=>s+(p.t===t),0)}
+
+function step(f,dt){
+  const o=f.o;
+  // beweging
+  f.parts.forEach(p=>{
+    p.vx+=(rnd()-.5)*.3*dt; p.vy+=(rnd()-.5)*.3*dt;
+    const v=Math.hypot(p.vx,p.vy),m=1.3; if(v>m){p.vx*=m/v;p.vy*=m/v}
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.a+=p.va*dt;
+    if(p.y<YT+8){p.y=YT+8;p.vy=Math.abs(p.vy)}
+    if(p.y>YB-4){p.y=YB-4;p.vy=-Math.abs(p.vy)}
+    const hl=half(p.y)-13,dx=p.x-CX;
+    if(Math.abs(dx)>hl){p.x=CX+Math.sign(dx)*hl;p.vx=-Math.sign(dx)*Math.abs(p.vx)}
+  });
+  // voorwaarts: HA + H2O -> H3O+ + A-
+  const nU=f.parts.filter(p=>p.t==='U');
+  nU.forEach(p=>{
+    if(rnd()<o.kf*dt){
+      p.t='H3O';
+      const q=mk('N'); const a=rnd()*6.283;
+      q.x=p.x+Math.cos(a)*22; q.y=p.y+Math.sin(a)*22;
+      const hl=half(q.y)-13; q.x=Math.max(CX-hl,Math.min(CX+hl,q.x));
+      q.y=Math.max(YT+8,Math.min(YB-4,q.y));
+      f.parts.push(q);
+    }
+  });
+  // achterwaarts: H3O+ + A- -> HA + H2O (snelheid ~ [H3O+][A-])
+  const hs=f.parts.filter(p=>p.t==='H3O'),as=f.parts.filter(p=>p.t==='N');
+  if(hs.length&&as.length&&rnd()<o.kb*hs.length*as.length*dt){
+    const h=hs[Math.floor(rnd()*hs.length)];
+    let best=as[0],bd=1e9;
+    as.forEach(a=>{const d=Math.hypot(a.x-h.x,a.y-h.y);if(d<bd){bd=d;best=a}});
+    best.t='U'; f.parts.splice(f.parts.indexOf(h),1);
+  }
+  // lopend gemiddelde
+  const al=.003*dt;
+  ['U','H3O','N'].forEach(t=>{f.avg[t]+=(cnt(f,t)-f.avg[t])*al});
+}
+
+function fmt(x){return x.toFixed(1).replace('.',',')}
+function counters(f){
+  const o=f.o,U=cnt(f,'U'),H=cnt(f,'H3O'),N=cnt(f,'N');
+  const a=f.avg;
+  let kz;
+  if(!o.weak && a.U<0.15){
+    kz=`K<sub>z</sub> = [H₃O⁺]·[${o.an}⁻] / [${o.hz}] met [${o.hz}] ≈ 0 → <b class="kz">K<sub>z</sub> zeer groot</b>`;
+  } else {
+    const k=a.U>0.05?(a.H3O*a.N)/a.U:Infinity;
+    kz=`K<sub>z</sub> ≈ n(H₃O⁺)·n(${o.an}⁻) / n(${o.hz}) = (${fmt(a.H3O)}·${fmt(a.N)}) / ${fmt(a.U)} = <b class="kz">${isFinite(k)?fmt(k):'∞'}</b> <span style="opacity:.7">(in aantallen; deel door V voor concentraties)</span>`;
+  }
+  f.nEl.innerHTML=
+   `Nu: ${o.hz} <b>${U}</b> · H₃O⁺ <b>${H}</b> · ${o.an}⁻ <b>${N}</b><br>`+
+   `Evenwicht (gemiddeld): ${o.hz} <b>${Math.round(a.U)}</b> · H₃O⁺ <b>${Math.round(a.H3O)}</b> · ${o.an}⁻ <b>${Math.round(a.N)}</b><br>`+kz;
+}
+
+function flaskPath(c){
+  c.beginPath();
+  c.moveTo(CX-34,25);c.lineTo(CX-34,90);c.lineTo(CX-118,325);
+  c.quadraticCurveTo(CX-118,348,CX-96,348);c.lineTo(CX+96,348);
+  c.quadraticCurveTo(CX+118,348,CX+118,325);c.lineTo(CX+34,90);c.lineTo(CX+34,25);
+}
+function circ(c,x,y,r,col){c.beginPath();c.arc(x,y,r,0,6.283);c.fillStyle=col;c.fill()}
+function txt(c,s,x,y,sz){c.fillStyle='#fff';c.font=`bold ${sz}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(s,x,y)}
+
+function draw(f){
+  const c=f.ctx,o=f.o;
+  c.clearRect(0,0,W,H); c.fillStyle='#0a1628'; c.fillRect(0,0,W,H);
+  c.save(); flaskPath(c); c.clip();
+  c.fillStyle='rgba(79,195,247,0.16)'; c.fillRect(0,YT-10,W,H);
+  c.restore();
+  flaskPath(c); c.strokeStyle='rgba(255,255,255,0.45)'; c.lineWidth=2; c.stroke();
+  c.fillStyle='rgba(255,255,255,0.28)'; c.fillRect(CX-40,10,80,16); // stop: gesloten
+  c.strokeStyle='rgba(79,195,247,0.5)'; c.lineWidth=1;
+  c.beginPath();c.moveTo(CX-half(YT-10),YT-10);c.lineTo(CX+half(YT-10),YT-10);c.stroke();
+  f.parts.forEach(p=>{
+    c.save(); c.translate(p.x,p.y);
+    if(p.t==='H3O'){circ(c,0,0,12,'#ff5252');txt(c,'H₃O⁺',0,0,8)}
+    else if(p.t==='N'){circ(c,0,0,11,o.col);txt(c,o.an+'⁻',0,0,o.an==='Cl'?9:10)}
+    else{
+      c.rotate(p.a); circ(c,0,0,11,o.col);
+      circ(c,12,0,6,'#fff');
+      c.rotate(-p.a); txt(c,o.an,0,0,o.an==='Cl'?9:10);
+      c.rotate(p.a); c.fillStyle='#0a1628';c.font='bold 8px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('H',12,0);
+    }
+    c.restore();
+  });
+}
+function render(){F.forEach(f=>{draw(f);counters(f)})}
+
+function loop(ts){
+  const raw=Math.min((ts-last)/16.67,3); last=ts;
+  const dt=raw*speed/3;
+  F.forEach(f=>step(f,dt));
+  render();
+  if(playing) raf=requestAnimationFrame(loop);
+}
+function setBtn(){
+  const b=document.getElementById('btn-play');
+  b.innerHTML=playing?'<i class="ti ti-player-pause"></i> Pauze':'<i class="ti ti-player-play"></i> Start';
+  b.classList.toggle('active',!playing);
+}
+document.getElementById('btn-play').onclick=()=>{
+  playing=!playing; setBtn();
+  if(playing){last=performance.now();raf=requestAnimationFrame(loop)} else cancelAnimationFrame(raf);
+};
+document.getElementById('btn-reset').onclick=resetSim;
+document.getElementById('spd').oninput=e=>{speed=+e.target.value;document.getElementById('spd-val').textContent=speed+'×'};
+
+// ── Vragen b en c ──
+const SPECIES=[['H2O','H₂O'],['HA','HA'],['A','A⁻'],['HCl','HCl'],['Cl','Cl⁻'],['H3O','H₃O⁺'],['Hp','H⁺ (vrij)']];
+const ANS={b1:['H2O','HA','A','H3O'],b2:['H2O','H3O','Cl']};
+function buildB(id){
+  document.getElementById(id).innerHTML=SPECIES.map(([k,l])=>
+    `<label class="opt" data-k="${k}"><input type="checkbox" value="${k}"> ${l}</label>`).join('');
+}
+buildB('b1');buildB('b2');
+const shuffle=a=>a.map(x=>[rnd(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const KZ={
+  k1:[['[H₃O⁺]·[A⁻] / [HA]',1],['[HA] / ([H₃O⁺]·[A⁻])',0],['[H₃O⁺]·[A⁻] / ([HA]·[H₂O])',0],['[H₃O⁺] / [HA]',0]],
+  k2:[['[H₃O⁺]·[Cl⁻] / [HCl]',1],['[H₃O⁺]·[Cl⁻]',0],['[HCl] / ([H₃O⁺]·[Cl⁻])',0],['[H₃O⁺]·[Cl⁻] / ([HCl]·[H₂O])',0]]
+};
+Object.keys(KZ).forEach(id=>{
+  document.getElementById(id).innerHTML=shuffle(KZ[id]).map(([l,ok])=>
+    `<label class="opt" data-ok="${ok}"><input type="radio" name="${id}"> ${l}</label>`).join('');
+});
+
+document.getElementById('chk-b').onclick=()=>{
+  const miss=[],extra=[];let all=true;
+  ['b1','b2'].forEach(id=>{
+    const name=id==='b1'?'HA':'HCl';
+    document.querySelectorAll('#'+id+' .opt').forEach(l=>{
+      const k=l.dataset.k,on=l.querySelector('input').checked,should=ANS[id].includes(k);
+      const lbl=SPECIES.find(s=>s[0]===k)[1];
+      l.className='opt'+(on&&should?' ok':(on!==should?' no':''));
+      if(on!==should){all=false;(should?miss:extra).push(`${lbl} (${name}-erlenmeyer)`)}
+    });
+  });
+  const fb=document.getElementById('fb-b');
+  if(all){fb.className='fb good';fb.textContent='Juist! Zwak zuur: HA, A⁻, H₃O⁺ en H₂O, met veel ongesplitste HA. Sterk zuur: enkel H₃O⁺, Cl⁻ en H₂O, want alle HCl is gesplitst.'}
+  else{fb.className='fb bad';fb.textContent='Nog niet helemaal.'+(miss.length?' Ontbreekt: '+miss.join(', ')+'.':'')+(extra.length?' Te veel of fout aangeduid: '+extra.join(', ')+'.':'')+' Kijk naar wat er in de simulatie rondzweeft.'}
+};
+document.getElementById('chk-c').onclick=()=>{
+  let all=true,none=false;
+  ['k1','k2'].forEach(id=>{
+    const sel=[...document.querySelectorAll('#'+id+' .opt')];
+    if(!sel.some(l=>l.querySelector('input').checked)) none=true;
+    sel.forEach(l=>{
+      const on=l.querySelector('input').checked,ok=l.dataset.ok==='1';
+      l.className='opt'+(ok&&on?' ok':(on&&!ok?' no':''));
+      if(on!==ok)all=false;
+    });
+  });
+  const fb=document.getElementById('fb-c');
+  if(none){fb.className='fb bad';fb.textContent='Kies eerst een uitdrukking voor beide zuren.';return}
+  if(all){fb.className='fb good';fb.innerHTML='Juist! Water is het oplosmiddel en staat niet in K<sub>z</sub>. Voor HA uit de tekening: (2·2)/8 ≈ 0,5 in aantallen, dus een kleine K<sub>z</sub>. Voor HCl is de noemer ≈ 0 (alle 10 HCl gesplitst), dus K<sub>z</sub> is zeer groot.'}
+  else{fb.className='fb bad';fb.innerHTML='Nog niet helemaal. Denk aan de vorm K<sub>z</sub> = [producten] / [reagentia], zonder het oplosmiddel water.'}
+};
+
+resetSim();
+</script>
+</body>
+</html>
