@@ -123,14 +123,14 @@ function step(){
   for(let it=0;it<2;it++){
     for(const b of bonds){
       const a=b.a,c=b.b;let dx=c.x-a.x,dy=c.y-a.y;const d=Math.hypot(dx,dy)||1;
-      const rest=(a.r+c.r)*0.85-(b.o-1)*5,k=(d-rest)/d*0.3;
+      const rest=(a.r+c.r)+16-(b.o-1)*4,k=(d-rest)/d*0.3;
       const wa=a.pin?0:1,wc=c.pin?0:1,sm=wa+wc;if(!sm)continue;
       a.x+=dx*k*wa/sm;a.y+=dy*k*wa/sm;c.x-=dx*k*wc/sm;c.y-=dy*k*wc/sm}
     for(let i=0;i<atoms.length;i++)for(let j=i+1;j<atoms.length;j++){
       const a=atoms[i],c=atoms[j];let dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy);
       const same=a.c===c.c;
       if(same&&a.adj.includes(c))continue;
-      const min=same?(a.r+c.r)*1.5:a.r+c.r+2;
+      const min=same?(a.r+c.r)*1.9:a.r+c.r+2;
       if(d>=min)continue;
       if(d<0.01){dx=Math.random()-.5;dy=Math.random()-.5;d=Math.hypot(dx,dy)}
       const push=(min-d)*(same?0.08:0.5)/d;
@@ -198,7 +198,7 @@ cv.addEventListener('pointerdown',e=>{
   for(const b of bonds){
     const ax=b.a.x,ay=b.a.y,dx=b.b.x-ax,dy=b.b.y-ay,l2=dx*dx+dy*dy||1;
     let t=Math.max(0,Math.min(1,((p.x-ax)*dx+(p.y-ay)*dy)/l2));
-    if(Math.hypot(ax+dx*t-p.x,ay+dy*t-p.y)<9){
+    if(Math.hypot(ax+dx*t-p.x,ay+dy*t-p.y)<11){
       b.o=(b.o<3&&free(b.a)>0&&free(b.b)>0)?b.o+1:1;computeComps();updateInfo();return}}
   sel=null;updateInfo()});
 
