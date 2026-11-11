@@ -28,6 +28,20 @@ h3{font-family:var(--mono);font-size:11px;font-weight:400;text-transform:upperca
 .chips{display:flex;flex-wrap:wrap;gap:5px}
 .chip{border:1px solid rgba(93,202,165,.2);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:11px;background:var(--tag-bg);color:var(--accent)}
 .hint{font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;margin:0}
+.switch{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font-family:var(--mono);font-size:11px;text-align:left}
+.switch:hover{border-color:var(--accent)}
+.track{width:34px;height:18px;border-radius:9px;background:var(--border);position:relative;flex:none;transition:.15s}
+.track::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:.15s}
+.switch[aria-checked=true]{border-color:var(--accent)}
+.switch[aria-checked=true] .track{background:var(--accent)}
+.switch[aria-checked=true] .track::after{left:18px;background:#08130f}
+.side{margin-bottom:10px}
+.side h4{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin:0 0 6px;display:flex;justify-content:space-between}
+.side.l h4{color:var(--accent2)}.side.r h4{color:var(--accent)}
+.side .chips+.chips{margin-top:6px}
+.bal{font-family:var(--mono);font-size:11px;line-height:1.5;padding:7px 9px;border-radius:8px;border:1px solid}
+.bal.ok{color:var(--accent);border-color:rgba(93,202,165,.4);background:var(--tag-bg)}
+.bal.bad{color:var(--danger);border-color:rgba(240,128,107,.4);background:rgba(240,128,107,.1)}
 main{position:relative;min-width:0;min-height:0;background-color:var(--bg);background-image:linear-gradient(rgba(93,202,165,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(93,202,165,.04) 1px,transparent 1px);background-size:40px 40px}
 canvas{position:absolute;inset:0;width:100%;height:100%;background:transparent;touch-action:none;cursor:default}
 button{font:inherit;cursor:pointer}
@@ -35,7 +49,7 @@ button{font:inherit;cursor:pointer}
 #reset:hover{border-color:var(--danger);color:var(--danger)}
 #trash{position:absolute;right:14px;bottom:14px;width:72px;height:72px;border:2px dashed var(--border);border-radius:16px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:32px;transition:.12s;pointer-events:none}
 #trash.over{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 18%,var(--panel));transform:scale(1.15)}
-#sel{position:absolute;left:50%;top:10px;transform:translateX(-50%);display:none;align-items:center;gap:12px;padding:8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+#sel{position:absolute;left:50%;top:44px;transform:translateX(-50%);display:none;align-items:center;gap:12px;padding:8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 #sel button{padding:6px 12px;border:0;border-radius:8px;background:var(--accent);color:#08130f;font-family:var(--mono);font-weight:700;font-size:13px}
 #selname{font-family:var(--mono);font-weight:700}
 @media (max-width:700px){
@@ -56,8 +70,9 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 <p class="site-label">Chemie — Atoombouw</p>
 <h1>Moleculen<span>bouwer</span></h1></div>
 <div><h3>Atomen</h3><div id="boxes"></div></div>
+<button id="mode" class="switch" role="switch" aria-checked="false"><span class="track"></span><span>Reagentia | Reactieproducten</span></button>
 <div><h3>Op het werkveld</h3><div id="info"></div></div>
-<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Sleep naar de vuilbak om te verwijderen.</p>
+<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Sleep naar de vuilbak om te verwijderen. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
 </aside>
 <main id="main">
 <canvas id="cv"></canvas>
@@ -79,9 +94,9 @@ Cl:{n:'Chloor',c:'#2fd62f',r:29,v:1,t:'#222'},
 Br:{n:'Broom',c:'#a52a2a',r:32,v:1,t:'#fff'}};
 const $=id=>document.getElementById(id);
 const cv=$('cv'),ctx=cv.getContext('2d'),main=$('main');
-let W=0,H=0,atoms=[],bonds=[],drag=null,sel=null,nid=1,theme={},lastInfo='';
+let W=0,H=0,atoms=[],bonds=[],drag=null,sel=null,nid=1,theme={},lastInfo='',splitMode=false,fr=0;
 
-function readTheme(){const s=getComputedStyle(document.documentElement);['--canvas','--bond','--accent'].forEach(k=>theme[k]=s.getPropertyValue(k).trim())}
+function readTheme(){const s=getComputedStyle(document.documentElement);['--canvas','--bond','--accent','--accent2','--muted'].forEach(k=>theme[k]=s.getPropertyValue(k).trim())}
 function resize(){const r=main.getBoundingClientRect(),d=window.devicePixelRatio||1;W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);readTheme()}
 new ResizeObserver(resize).observe(main);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readTheme);
@@ -137,13 +152,24 @@ function step(){
       const wa=a.pin?0:1,wc=c.pin?0:1,sm=wa+wc;if(!sm)continue;
       a.x-=dx*push*wa/sm*2;a.y-=dy*push*wa/sm*2;c.x+=dx*push*wc/sm*2;c.y+=dy*push*wc/sm*2}
   }
-  atoms.forEach(a=>{a.x=Math.min(W-a.r,Math.max(a.r,a.x));a.y=Math.min(H-a.r,Math.max(a.y,a.r));a.y=Math.min(a.y,H-a.r)});
+  atoms.forEach(a=>{a.x=Math.min(W-a.r,Math.max(a.r,a.x));a.y=Math.min(H-a.r,Math.max(a.y,a.r))});
 }
 
 // drawing
+function drawSplit(){
+  ctx.fillStyle='rgba(55,138,221,.05)';ctx.fillRect(0,0,W/2,H);
+  ctx.fillStyle='rgba(93,202,165,.05)';ctx.fillRect(W/2,0,W/2,H);
+  ctx.save();ctx.setLineDash([8,6]);ctx.strokeStyle=theme['--accent'];ctx.globalAlpha=.6;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.restore();
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font="700 11px 'Space Mono',monospace";
+  ctx.fillStyle=theme['--accent2'];ctx.fillText('REAGENTIA',W/4,22);
+  ctx.fillStyle=theme['--accent'];ctx.fillText('REACTIEPRODUCTEN',W*3/4,22);
+  ctx.fillStyle=theme['--muted'];ctx.font="700 22px 'Space Mono',monospace";ctx.fillText('→',W/2,22)}
 function draw(){
   step();
   ctx.clearRect(0,0,W,H);
+  if(splitMode){drawSplit();if(++fr%10===0)updateInfo()}
   const selC=sel&&atoms.includes(sel)?sel.c:-1;
   ctx.lineCap='round';ctx.strokeStyle=theme['--bond'];ctx.lineWidth=3.5;
   for(const b of bonds){
@@ -170,15 +196,28 @@ function formula(cnt){
   let k=Object.keys(cnt).sort();
   if(cnt.C)k=['C',...(cnt.H?['H']:[]),...k.filter(x=>x!=='C'&&x!=='H')];
   return k.map(x=>x+(cnt[x]>1?sub(String(cnt[x])):'')).join('')}
+function summarize(ms){
+  const tot={},groups={};
+  ms.forEach(m=>{const f=formula(m);groups[f]=(groups[f]||0)+1;for(const s in m)tot[s]=(tot[s]||0)+m[s]});
+  return{tot,groups,n:Object.values(tot).reduce((a,b)=>a+b,0)}}
+function chipsHtml(r){
+  return `<div class="chips">${Object.keys(r.tot).sort().map(s=>`<span class="chip"><b>${s}</b> × ${r.tot[s]}</span>`).join('')}</div>`+
+    `<div class="chips">${Object.entries(r.groups).map(([f,c])=>`<span class="chip">${c>1?c+' × ':''}${f}</span>`).join('')}</div>`}
+function sideHtml(cls,title,r){
+  return `<div class="side ${cls}"><h4><span>${title}</span><span>${r.n} atomen</span></h4>${r.n?chipsHtml(r):'<span class="hint">Leeg</span>'}</div>`}
 function updateInfo(){
   if(sel&&!atoms.includes(sel))sel=null;
-  const n=computeComps(),tot={},mol=Array.from({length:n},()=>({}));
-  atoms.forEach(a=>{tot[a.s]=(tot[a.s]||0)+1;mol[a.c][a.s]=(mol[a.c][a.s]||0)+1});
-  const groups={};mol.forEach(m=>{const f=formula(m);groups[f]=(groups[f]||0)+1});
-  const chip=(t,c)=>`<span class="chip">${c?`<b style="color:inherit">${t}</b>`:t}</span>`;
-  const html=!atoms.length?'<span class="hint">Nog niets op het werkveld.</span>':
-    `<div class="chips" style="margin-bottom:8px">${Object.keys(tot).sort().map(s=>`<span class="chip"><b>${s}</b> × ${tot[s]}</span>`).join('')}</div>`+
-    `<div class="chips">${Object.entries(groups).map(([f,c])=>`<span class="chip">${c>1?c+' × ':''}${f}</span>`).join('')}</div>`;
+  const n=computeComps(),mol=Array.from({length:n},()=>({})),sx=Array(n).fill(0),sn=Array(n).fill(0);
+  atoms.forEach(a=>{mol[a.c][a.s]=(mol[a.c][a.s]||0)+1;sx[a.c]+=a.x;sn[a.c]++});
+  let html;
+  if(!atoms.length&&!splitMode)html='<span class="hint">Nog niets op het werkveld.</span>';
+  else if(!splitMode)html=chipsHtml(summarize(mol)).replace('<div class="chips">','<div class="chips" style="margin-bottom:8px">');
+  else{
+    const L=summarize(mol.filter((m,i)=>sx[i]/sn[i]<W/2)),R=summarize(mol.filter((m,i)=>sx[i]/sn[i]>=W/2));
+    const diffs=[...new Set([...Object.keys(L.tot),...Object.keys(R.tot)])].sort().filter(s=>(L.tot[s]||0)!==(R.tot[s]||0));
+    const bal=!L.n&&!R.n?'':!diffs.length?'<div class="bal ok">✓ Wet van Lavoisier: links en rechts evenveel atomen van elk element.</div>'
+      :`<div class="bal bad">✗ Niet in evenwicht: ${diffs.map(s=>`${s} ${L.tot[s]||0} ≠ ${R.tot[s]||0}`).join(' · ')}</div>`;
+    html=sideHtml('l','Reagentia',L)+sideHtml('r','Reactieproducten',R)+bal}
   if(html!==lastInfo){$('info').innerHTML=html;lastInfo=html}
   const size=sel?atoms.filter(a=>a.c===sel.c).length:0;
   if(sel&&size>1){const m={};atoms.filter(a=>a.c===sel.c).forEach(a=>m[a.s]=(m[a.s]||0)+1);
@@ -209,7 +248,8 @@ addEventListener('pointermove',e=>{
   const dx=nx-a.x,dy=ny-a.y;drag.set.forEach(s=>{s.x+=dx;s.y+=dy});
   const t=$('trash').getBoundingClientRect();
   drag.over=e.clientX>t.left&&e.clientX<t.right&&e.clientY>t.top&&e.clientY<t.bottom;
-  $('trash').classList.toggle('over',drag.over)});
+  $('trash').classList.toggle('over',drag.over);
+  if(splitMode)updateInfo()});
 
 addEventListener('pointerup',()=>{
   if(!drag)return;const d=drag;drag=null;$('trash').classList.remove('over');
@@ -225,6 +265,7 @@ $('split').onclick=()=>{
   m.forEach(a=>{const dx=a.x-cx,dy=a.y-cy,l=Math.hypot(dx,dy)||1;a.x+=dx/l*35;a.y+=dy/l*35});
   sel=null;updateInfo()};
 $('reset').onclick=()=>{atoms=[];bonds=[];sel=null;drag=null;updateInfo()};
+$('mode').onclick=()=>{splitMode=!splitMode;$('mode').setAttribute('aria-checked',splitMode);lastInfo='';updateInfo()};
 
 resize();updateInfo();requestAnimationFrame(draw);
 </script>
