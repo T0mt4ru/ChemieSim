@@ -72,7 +72,7 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 <div><h3>Atomen</h3><div id="boxes"></div></div>
 <button id="mode" class="switch" role="switch" aria-checked="false"><span class="track"></span><span>Reagentia | Reactieproducten</span></button>
 <div><h3>Op het werkveld</h3><div id="info"></div></div>
-<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Sleep naar de vuilbak om te verwijderen. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
+<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Sleep naar de vuilbak om te verwijderen. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
 </aside>
 <main id="main">
 <canvas id="cv"></canvas>
@@ -125,6 +125,7 @@ function findPair(c){
   let best=null,bd=1e9;
   for(const a of atoms){if(a.c!==c||free(a)<1)continue;
     for(const b of atoms){if(b.c===c||free(b)<1)continue;
+      if((a.keep&&b.dup)||(a.dup&&b.keep))continue;
       const d=Math.hypot(a.x-b.x,a.y-b.y);
       if(d<a.r+b.r+12&&d<bd){bd=d;best=[a,b]}}}
   return best}
@@ -145,6 +146,7 @@ function step(){
       const a=atoms[i],c=atoms[j];let dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy);
       const same=a.c===c.c;
       if(same&&a.adj.includes(c))continue;
+      if((a.keep&&c.dup)||(a.dup&&c.keep))continue;
       const min=same?(a.r+c.r)*1.9:a.r+c.r+2;
       if(d>=min)continue;
       if(d<0.01){dx=Math.random()-.5;dy=Math.random()-.5;d=Math.hypot(dx,dy)}
@@ -225,11 +227,17 @@ function updateInfo(){
   else{sel=null;$('sel').style.display='none'}}
 
 // interaction
+cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{
   const p=pos(e);computeComps();
   let hit=null;for(let i=atoms.length-1;i>=0;i--){const a=atoms[i];if(Math.hypot(a.x-p.x,a.y-p.y)<=a.r){hit=a;break}}
+  if(hit&&(e.ctrlKey||e.metaKey)){
+    const src=atoms.filter(a=>a.c===hit.c),map=new Map();
+    src.forEach(a=>{a.keep=true;const n={id:nid++,s:a.s,x:a.x,y:a.y,r:a.r,c:-1,adj:[],used:0,pin:false,dup:true};map.set(a,n);atoms.push(n)});
+    bonds.filter(b=>map.has(b.a)).forEach(b=>bonds.push({a:map.get(b.a),b:map.get(b.b),o:b.o}));
+    hit=map.get(hit);computeComps()}
   if(hit){
-    if(e.shiftKey){bonds=bonds.filter(b=>b.a!==hit&&b.b!==hit);computeComps();sel=null}
+    if(e.shiftKey&&!hit.dup){bonds=bonds.filter(b=>b.a!==hit&&b.b!==hit);computeComps();sel=null}
     const set=atoms.filter(a=>a.c===hit.c);
     atoms=atoms.filter(a=>!set.includes(a)).concat(set);
     drag={atom:hit,set,ox:p.x-hit.x,oy:p.y-hit.y,moved:false,sx:e.clientX,sy:e.clientY};
@@ -253,6 +261,7 @@ addEventListener('pointermove',e=>{
 
 addEventListener('pointerup',()=>{
   if(!drag)return;const d=drag;drag=null;$('trash').classList.remove('over');
+  atoms.forEach(a=>{a.keep=a.dup=false});
   if(d.over&&d.moved){const s=new Set(d.set);atoms=atoms.filter(a=>!s.has(a));bonds=bonds.filter(b=>!s.has(b.a));if(sel&&s.has(sel))sel=null}
   else if(!d.moved){computeComps();sel=d.set.length>1?d.atom:null}
   else tryBond(d.atom);
