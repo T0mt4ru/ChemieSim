@@ -204,9 +204,23 @@ function draw(){
 
 // info
 const sub=s=>s.replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]);
+// Volgorde voor stoffen zonder koolstof (minst → meest elektronegatief)
+const ORD=['C','H','P','S','Br','N','Cl','O','F'];
+// Uitzonderingen op de regel: sleutel = elementen alfabetisch met aantal, waarde = gewenste volgorde
+// Aanvullen kan hier: bv. 'H3As1':['As','H'] (element moet dan ook in EL en ORD staan)
+const EXC={
+  'H3N1':['N','H'],
+  'H3P1':['P','H'],
+  'H4N2':['N','H'],
+  'C1H1N1':['H','C','N']
+};
 function formula(cnt){
-  let k=Object.keys(cnt).sort();
-  if(cnt.C)k=['C',...(cnt.H?['H']:[]),...k.filter(x=>x!=='C'&&x!=='H')];
+  const key=Object.keys(cnt).sort().map(x=>x+cnt[x]).join('');
+  let k=EXC[key];
+  if(!k){
+    k=Object.keys(cnt);
+    if(cnt.C)k=['C',...(cnt.H?['H']:[]),...k.filter(x=>x!=='C'&&x!=='H').sort()]; // Hill-notatie
+    else k.sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b))}
   return k.map(x=>x+(cnt[x]>1?sub(String(cnt[x])):'')).join('')}
 function summarize(ms){
   const tot={},groups={};
