@@ -45,10 +45,18 @@ h3{font-family:var(--mono);font-size:11px;font-weight:400;text-transform:upperca
 main{position:relative;min-width:0;min-height:0;background-color:var(--bg);background-image:linear-gradient(rgba(93,202,165,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(93,202,165,.04) 1px,transparent 1px);background-size:40px 40px}
 canvas{position:absolute;inset:0;width:100%;height:100%;background:transparent;touch-action:none;cursor:default}
 button{font:inherit;cursor:pointer}
-#reset{position:absolute;top:10px;right:10px;padding:7px 12px;font-family:var(--mono);font-size:12px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text)}
-#reset:hover{border-color:var(--danger);color:var(--danger)}
-#trash{position:absolute;right:14px;bottom:14px;width:72px;height:72px;border:2px dashed var(--border);border-radius:16px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:32px;transition:.12s;pointer-events:none}
-#trash.over{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 18%,var(--panel));transform:scale(1.15)}
+.trash{position:absolute;bottom:14px;width:72px;height:72px;border:2px dashed var(--border);border-radius:16px;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:32px;transition:.12s;cursor:pointer}
+#trash{right:14px}#trashL{left:14px}
+.trash:hover{border-color:var(--danger)}
+.trash.over{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 18%,var(--panel));transform:scale(1.15)}
+@media (min-width:1400px){.trash{width:96px;height:96px;font-size:42px}}
+#dlg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:20}
+#dlg .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 24px;max-width:340px;text-align:center}
+#dlg h2{font-family:var(--mono);font-size:1.1rem;margin:0 0 8px}
+#dlg p{font-size:14px;color:var(--muted);margin:0 0 18px;line-height:1.5}
+#dlg .row{display:flex;gap:10px}
+#dlg button{flex:1;padding:14px 10px;font-family:var(--mono);font-size:14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text)}
+#dlg #dlgYes{background:var(--danger);border-color:var(--danger);color:#1a0b07;font-weight:700}
 #sel{position:absolute;left:50%;top:44px;transform:translateX(-50%);display:none;align-items:center;gap:12px;padding:8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 #sel button{padding:6px 12px;border:0;border-radius:8px;background:var(--accent);color:#08130f;font-family:var(--mono);font-weight:700;font-size:13px}
 #selname{font-family:var(--mono);font-weight:700}
@@ -59,7 +67,7 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 .box{flex-direction:column;gap:2px;padding:4px;font-size:10px;text-align:center}
 .hint,.site-label{display:none}
 #sel{top:auto;bottom:10px;left:10px;transform:none}
-#trash{width:56px;height:56px;font-size:26px}
+#trash,#trashL{width:56px;height:56px;font-size:26px}
 }
 </style>
 </head>
@@ -71,16 +79,18 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 <h1>Moleculen<span>bouwer</span></h1></div>
 <div><h3>Atomen</h3><div id="boxes"></div></div>
 <button id="mode" class="switch" role="switch" aria-checked="false"><span class="track"></span><span>Reagentia | Reactieproducten</span></button>
+<button id="copy" class="switch" role="switch" aria-checked="false"><span class="track"></span><span>Kopieermodus</span></button>
 <div><h3>Op het werkveld</h3><div id="info"></div></div>
-<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Sleep naar de vuilbak om te verwijderen. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
+<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Of zet de Kopieermodus aan: dan maakt elke sleep (of tik) een kopie. Sleep naar een vuilbak om te verwijderen; klik op een vuilbak om alles te wissen. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
 </aside>
 <main id="main">
 <canvas id="cv"></canvas>
 <div id="sel"><span id="selname"></span><button id="split">Losmaken</button></div>
-<button id="reset">Alles wissen</button>
-<div id="trash">🗑️</div>
+<div id="trashL" class="trash" title="Sleep hierheen om te verwijderen · klik om alles te wissen">🗑️</div>
+<div id="trash" class="trash" title="Sleep hierheen om te verwijderen · klik om alles te wissen">🗑️</div>
 </main>
 </div>
+<div id="dlg"><div class="card"><h2>Alles wissen?</h2><p>Alle atomen en moleculen op het werkveld worden verwijderd.</p><div class="row"><button id="dlgNo">Annuleren</button><button id="dlgYes">Ja, wis alles</button></div></div></div>
 <script>
 const EL={
 H:{n:'Waterstof',c:'#f2f2f2',r:17,v:1,t:'#222'},
@@ -94,7 +104,7 @@ Cl:{n:'Chloor',c:'#2fd62f',r:29,v:1,t:'#222'},
 Br:{n:'Broom',c:'#a52a2a',r:32,v:1,t:'#fff'}};
 const $=id=>document.getElementById(id);
 const cv=$('cv'),ctx=cv.getContext('2d'),main=$('main');
-let W=0,H=0,atoms=[],bonds=[],drag=null,sel=null,nid=1,theme={},lastInfo='',splitMode=false,fr=0;
+let W=0,H=0,atoms=[],bonds=[],drag=null,sel=null,nid=1,theme={},lastInfo='',splitMode=false,copyMode=false,fr=0;
 
 function readTheme(){const s=getComputedStyle(document.documentElement);['--canvas','--bond','--accent','--accent2','--muted'].forEach(k=>theme[k]=s.getPropertyValue(k).trim())}
 function resize(){const r=main.getBoundingClientRect(),d=window.devicePixelRatio||1;W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);readTheme()}
@@ -227,11 +237,12 @@ function updateInfo(){
   else{sel=null;$('sel').style.display='none'}}
 
 // interaction
+const trashes=[$('trash'),$('trashL')];
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{
   const p=pos(e);computeComps();
   let hit=null;for(let i=atoms.length-1;i>=0;i--){const a=atoms[i];if(Math.hypot(a.x-p.x,a.y-p.y)<=a.r){hit=a;break}}
-  if(hit&&(e.ctrlKey||e.metaKey)){
+  if(hit&&(e.ctrlKey||e.metaKey||copyMode)){
     const src=atoms.filter(a=>a.c===hit.c),map=new Map();
     src.forEach(a=>{a.keep=true;const n={id:nid++,s:a.s,x:a.x,y:a.y,r:a.r,c:-1,adj:[],used:0,pin:false,dup:true};map.set(a,n);atoms.push(n)});
     bonds.filter(b=>map.has(b.a)).forEach(b=>bonds.push({a:map.get(b.a),b:map.get(b.b),o:b.o}));
@@ -245,7 +256,7 @@ cv.addEventListener('pointerdown',e=>{
   for(const b of bonds){
     const ax=b.a.x,ay=b.a.y,dx=b.b.x-ax,dy=b.b.y-ay,l2=dx*dx+dy*dy||1;
     let t=Math.max(0,Math.min(1,((p.x-ax)*dx+(p.y-ay)*dy)/l2));
-    if(Math.hypot(ax+dx*t-p.x,ay+dy*t-p.y)<11){
+    if(Math.hypot(ax+dx*t-p.x,ay+dy*t-p.y)<(e.pointerType==='touch'?22:11)){
       b.o=(b.o<3&&free(b.a)>0&&free(b.b)>0)?b.o+1:1;computeComps();updateInfo();return}}
   sel=null;updateInfo()});
 
@@ -254,13 +265,12 @@ addEventListener('pointermove',e=>{
   const nx=Math.min(W-a.r,Math.max(a.r,p.x-drag.ox)),ny=Math.min(H-a.r,Math.max(a.r,p.y-drag.oy));
   if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>5)drag.moved=true;
   const dx=nx-a.x,dy=ny-a.y;drag.set.forEach(s=>{s.x+=dx;s.y+=dy});
-  const t=$('trash').getBoundingClientRect();
-  drag.over=e.clientX>t.left&&e.clientX<t.right&&e.clientY>t.top&&e.clientY<t.bottom;
-  $('trash').classList.toggle('over',drag.over);
+  drag.over=false;
+  trashes.forEach(el=>{const t=el.getBoundingClientRect(),o=e.clientX>t.left&&e.clientX<t.right&&e.clientY>t.top&&e.clientY<t.bottom;el.classList.toggle('over',o);if(o)drag.over=true});
   if(splitMode)updateInfo()});
 
 addEventListener('pointerup',()=>{
-  if(!drag)return;const d=drag;drag=null;$('trash').classList.remove('over');
+  if(!drag)return;const d=drag;drag=null;trashes.forEach(t=>t.classList.remove('over'));
   atoms.forEach(a=>{a.keep=a.dup=false});
   if(d.over&&d.moved){const s=new Set(d.set);atoms=atoms.filter(a=>!s.has(a));bonds=bonds.filter(b=>!s.has(b.a));if(sel&&s.has(sel))sel=null}
   else if(!d.moved){computeComps();sel=d.set.length>1?d.atom:null}
@@ -273,7 +283,12 @@ $('split').onclick=()=>{
   const cx=m.reduce((s,a)=>s+a.x,0)/m.length,cy=m.reduce((s,a)=>s+a.y,0)/m.length;
   m.forEach(a=>{const dx=a.x-cx,dy=a.y-cy,l=Math.hypot(dx,dy)||1;a.x+=dx/l*35;a.y+=dy/l*35});
   sel=null;updateInfo()};
-$('reset').onclick=()=>{atoms=[];bonds=[];sel=null;drag=null;updateInfo()};
+const dlg=$('dlg'),closeDlg=()=>dlg.style.display='none';
+trashes.forEach(t=>t.addEventListener('click',()=>{if(atoms.length)dlg.style.display='flex'}));
+$('dlgNo').onclick=closeDlg;dlg.onclick=e=>{if(e.target===dlg)closeDlg()};
+$('dlgYes').onclick=()=>{atoms=[];bonds=[];sel=null;drag=null;closeDlg();updateInfo()};
+addEventListener('keydown',e=>{if(e.key==='Escape')closeDlg()});
+$('copy').onclick=()=>{copyMode=!copyMode;$('copy').setAttribute('aria-checked',copyMode);cv.style.cursor=copyMode?'copy':'default'};
 $('mode').onclick=()=>{splitMode=!splitMode;$('mode').setAttribute('aria-checked',splitMode);lastInfo='';updateInfo()};
 
 resize();updateInfo();requestAnimationFrame(draw);
