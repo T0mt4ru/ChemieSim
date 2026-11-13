@@ -86,7 +86,7 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 <div class="fileRow"><button id="save" class="btn">💾 Opslaan</button><button id="open" class="btn">📂 Openen</button></div>
 <input type="file" id="file" hidden>
 <div><h3>Op het werkveld</h3><div id="info"></div></div>
-<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Of zet de Kopieermodus aan: dan maakt elke sleep (of tik) een kopie. Sleep naar een vuilbak om te verwijderen; klik op een vuilbak om alles te wissen. Met Opslaan bewaar je het werkveld als .mlbr-bestand, met Openen laad je het weer. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
+<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Een ring sluit je door een atoom tegen beide uiteinden van een keten te leggen. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Of zet de Kopieermodus aan: dan maakt elke sleep (of tik) een kopie. Sleep naar een vuilbak om te verwijderen; klik op een vuilbak om alles te wissen. Met Opslaan bewaar je het werkveld als .mlbr-bestand, met Openen laad je het weer. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
 </aside>
 <main id="main">
 <canvas id="cv"></canvas>
@@ -136,16 +136,29 @@ function computeComps(){
   atoms.forEach(a=>{if(a.c<0){const st=[a];a.c=id;while(st.length){const x=st.pop();x.adj.forEach(y=>{if(y.c<0){y.c=id;st.push(y)}})}id++}});
   return id}
 
-function findPair(c){
-  let best=null,bd=1e9;
-  for(const a of atoms){if(a.c!==c||free(a)<1)continue;
-    for(const b of atoms){if(b.c===c||free(b)<1)continue;
-      if((a.keep&&b.dup)||(a.dup&&b.keep))continue;
-      const d=Math.hypot(a.x-b.x,a.y-b.y);
-      if(d<a.r+b.r+12&&d<bd){bd=d;best=[a,b]}}}
-  return best}
-function tryBond(atom){
-  for(let g=0;g<12;g++){computeComps();const p=findPair(atom.c);if(!p)break;bonds.push({a:p[0],b:p[1],o:1})}}
+// Bindingen die bij loslaten van 'set' ontstaan (zonder iets te wijzigen).
+// Eerst binden met andere moleculen (<12 px speling); daarna mag hetzelfde atoom ook
+// een ring sluiten met een niet-aangrenzend atoom van dezelfde molecule (<20 px speling).
+function plan(set){
+  const S=new Set(set),used=new Map(),comp=new Map(),adj=new Map(),out=[];
+  atoms.forEach(a=>{used.set(a,a.used);comp.set(a,a.c);adj.set(a,new Set(a.adj))});
+  const fr=a=>EL[a.s].v-used.get(a);
+  for(let g=0;g<12;g++){
+    let best=null,bd=1e9;
+    for(const a of set){
+      if(fr(a)<1)continue;
+      for(const b of atoms){
+        if(b===a||S.has(b)||fr(b)<1||adj.get(a).has(b)||(a.keep&&b.dup)||(a.dup&&b.keep))continue;
+        const same=comp.get(a)===comp.get(b);
+        if(same){let tri=false;for(const n of adj.get(a))if(adj.get(b).has(n)){tri=true;break}if(tri)continue}
+        const d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<a.r+b.r+(same?20:12)&&d<bd){bd=d;best=[a,b]}}}
+    if(!best)break;
+    const[a,b]=best,ca=comp.get(a),cb=comp.get(b);
+    out.push(best);used.set(a,used.get(a)+1);used.set(b,used.get(b)+1);adj.get(a).add(b);adj.get(b).add(a);
+    if(ca!==cb)atoms.forEach(x=>{if(comp.get(x)===cb)comp.set(x,ca)})}
+  return out}
+function tryBond(set){computeComps();plan(set).forEach(([a,b])=>bonds.push({a,b,o:1}))}
 
 // physics
 function step(){
@@ -193,9 +206,9 @@ function draw(){
     const dx=b.b.x-b.a.x,dy=b.b.y-b.a.y,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;
     const offs=b.o===1?[0]:b.o===2?[-4,4]:[-7,0,7];
     for(const o of offs){ctx.beginPath();ctx.moveTo(b.a.x+nx*o,b.a.y+ny*o);ctx.lineTo(b.b.x+nx*o,b.b.y+ny*o);ctx.stroke()}}
-  if(drag){const p=findPair(drag.atom.c);
-    if(p){ctx.save();ctx.strokeStyle=theme['--accent'];ctx.lineWidth=3;ctx.setLineDash([6,5]);
-      ctx.beginPath();ctx.moveTo(p[0].x,p[0].y);ctx.lineTo(p[1].x,p[1].y);ctx.stroke();ctx.restore()}}
+  if(drag){const ps=plan(drag.set);
+    if(ps.length){ctx.save();ctx.strokeStyle=theme['--accent'];ctx.lineWidth=3;ctx.setLineDash([6,5]);
+      ctx.beginPath();ps.forEach(p=>{ctx.moveTo(p[0].x,p[0].y);ctx.lineTo(p[1].x,p[1].y)});ctx.stroke();ctx.restore()}}
   for(const a of atoms){
     const e=EL[a.s];
     if(a.c===selC){ctx.beginPath();ctx.arc(a.x,a.y,a.r+6,0,7);ctx.strokeStyle=theme['--accent'];ctx.lineWidth=3;ctx.stroke()}
@@ -288,7 +301,7 @@ addEventListener('pointerup',()=>{
   atoms.forEach(a=>{a.keep=a.dup=false});
   if(d.over&&d.moved){const s=new Set(d.set);atoms=atoms.filter(a=>!s.has(a));bonds=bonds.filter(b=>!s.has(b.a));if(sel&&s.has(sel))sel=null}
   else if(!d.moved){computeComps();sel=d.set.length>1?d.atom:null}
-  else tryBond(d.atom);
+  else tryBond(d.set);
   updateInfo()});
 
 $('split').onclick=()=>{
