@@ -60,16 +60,20 @@ button{font:inherit;cursor:pointer}
 #dlg .row{display:flex;gap:10px}
 #dlg button{flex:1;padding:14px 10px;font-family:var(--mono);font-size:14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text)}
 #dlg #dlgYes.danger{background:var(--danger);border-color:var(--danger);color:#1a0b07;font-weight:700}
-#sel{position:absolute;left:50%;top:44px;transform:translateX(-50%);display:none;align-items:center;gap:12px;padding:8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+#sel{position:absolute;left:50%;top:44px;transform:translateX(-50%);display:none;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px 12px;max-width:calc(100% - 24px);padding:8px 14px;background:var(--panel);border:1px solid var(--accent);border-radius:10px;font-size:16px;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 #sel button{padding:6px 12px;border:0;border-radius:8px;background:var(--accent);color:#08130f;font-family:var(--mono);font-weight:700;font-size:13px}
+#sel button.alt{background:transparent;color:var(--text);border:1px solid var(--border)}
+#sel button.alt:hover{border-color:var(--accent)}
 #selname{font-family:var(--mono);font-weight:700}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--accent);color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:30}
+#toast.show{opacity:1}
 @media (max-width:700px){
 #app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
 aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;padding:8px}
 #boxes{grid-template-columns:repeat(5,1fr);gap:5px}
 .box{flex-direction:column;gap:2px;padding:4px;font-size:10px;text-align:center}
 .hint,.site-label{display:none}
-#sel{top:auto;bottom:10px;left:10px;transform:none}
+#sel{top:auto;bottom:80px;left:10px;right:10px;transform:none}
 #trash,#trashL{width:56px;height:56px;font-size:26px}
 }
 </style>
@@ -90,11 +94,12 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 </aside>
 <main id="main">
 <canvas id="cv"></canvas>
-<div id="sel"><span id="selname"></span><button id="split">Losmaken</button></div>
+<div id="sel"><span id="selname"></span><button id="split">Losmaken</button><button id="molDl" class="alt">Download molecule</button><button id="molCp" class="alt">Molecule naar klembord</button></div>
 <div id="trashL" class="trash" title="Sleep hierheen om te verwijderen · klik om alles te wissen">🗑️</div>
 <div id="trash" class="trash" title="Sleep hierheen om te verwijderen · klik om alles te wissen">🗑️</div>
 </main>
 </div>
+<div id="toast"></div>
 <div id="dlg"><div class="card"><h2 id="dlgT"></h2><p id="dlgP"></p><div class="row"><button id="dlgNo">Annuleren</button><button id="dlgYes"></button></div></div></div>
 <script>
 const EL={
@@ -328,12 +333,12 @@ function saveField(){
     bindingen:bonds.map(b=>[idx.get(b.a),idx.get(b.b),b.o])};
   const d=new Date(),p=n=>String(n).padStart(2,'0');
   saveBlob(JSON.stringify(data),`moleculenbouwer-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.mlbr`)}
-async function saveBlob(text,name){
+async function saveBlob(data,name,mime='application/json',ext='.mlbr',desc='Moleculenbouwer-werkveld'){
   if(window.showSaveFilePicker){
-    try{const h=await showSaveFilePicker({suggestedName:name,types:[{description:'Moleculenbouwer-werkveld',accept:{'application/json':['.mlbr']}}]});
-      const w=await h.createWritable();await w.write(text);await w.close();return}
+    try{const h=await showSaveFilePicker({suggestedName:name,types:[{description:desc,accept:{[mime]:[ext]}}]});
+      const w=await h.createWritable();await w.write(data);await w.close();return}
     catch(err){if(err&&err.name==='AbortError')return}}
-  const url=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');
+  const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type:mime})),a=document.createElement('a');
   a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function parseField(d){
   const bad=m=>{throw new Error(m)};
@@ -371,6 +376,34 @@ function loadFile(f){
     if(atoms.length)showDlg('Werkveld vervangen?','Het huidige werkveld wordt vervangen door het bestand. Niet-opgeslagen werk gaat verloren.','Ja, vervang',()=>applyField(d));
     else applyField(d)
   }).catch(()=>showDlg('Kan bestand niet openen','Het bestand kon niet gelezen worden.','OK'))}
+// molecule als transparante PNG
+const plain=t=>t.replace(/[₀-₉]/g,d=>'₀₁₂₃₄₅₆₇₈₉'.indexOf(d));
+function renderMol(c,sc=3){
+  const m=atoms.filter(a=>a.c===c),pad=16,ms=new Set(m),bs=bonds.filter(b=>ms.has(b.a));
+  const x0=Math.min(...m.map(a=>a.x-a.r))-pad,y0=Math.min(...m.map(a=>a.y-a.r))-pad,
+        x1=Math.max(...m.map(a=>a.x+a.r))+pad,y1=Math.max(...m.map(a=>a.y+a.r))+pad;
+  const cvs=document.createElement('canvas');cvs.width=Math.ceil((x1-x0)*sc);cvs.height=Math.ceil((y1-y0)*sc);
+  const g=cvs.getContext('2d');g.scale(sc,sc);g.translate(-x0,-y0);g.lineCap='round';
+  const lines=(col,w)=>{g.strokeStyle=col;g.lineWidth=w;
+    for(const b of bs){const dx=b.b.x-b.a.x,dy=b.b.y-b.a.y,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;
+      for(const o of b.o===1?[0]:b.o===2?[-4,4]:[-7,0,7]){g.beginPath();g.moveTo(b.a.x+nx*o,b.a.y+ny*o);g.lineTo(b.b.x+nx*o,b.b.y+ny*o);g.stroke()}}};
+  lines('#0d1117',5.5);lines('#8b98a8',3.5);
+  for(const a of m){const e=EL[a.s];
+    const gr=g.createRadialGradient(a.x-a.r*.35,a.y-a.r*.4,a.r*.1,a.x,a.y,a.r);
+    gr.addColorStop(0,'rgba(255,255,255,.55)');gr.addColorStop(.35,e.c);gr.addColorStop(1,e.c);
+    g.beginPath();g.arc(a.x,a.y,a.r,0,7);g.fillStyle=e.c;g.fill();g.fillStyle=gr;g.fill();
+    g.lineWidth=2;g.strokeStyle='rgba(13,17,23,.9)';g.stroke();
+    g.fillStyle=e.t;g.font=`700 ${Math.round(a.r*.8)}px 'Space Mono',monospace`;g.textAlign='center';g.textBaseline='middle';g.fillText(a.s,a.x,a.y+1)}
+  return cvs}
+const molBlob=c=>new Promise(res=>renderMol(c).toBlob(res,'image/png'));
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
+$('molDl').onclick=()=>{if(!sel)return;computeComps();const c=sel.c,m={};
+  atoms.filter(a=>a.c===c).forEach(a=>m[a.s]=(m[a.s]||0)+1);
+  molBlob(c).then(b=>saveBlob(b,plain(formula(m))+'.png','image/png','.png','PNG-afbeelding'))};
+$('molCp').onclick=async()=>{if(!sel)return;computeComps();const c=sel.c;
+  try{if(!navigator.clipboard||!window.ClipboardItem)throw 0;
+    await navigator.clipboard.write([new ClipboardItem({'image/png':molBlob(c)})]);toast('Molecule gekopieerd naar het klembord')}
+  catch(e){showDlg('Kopiëren lukt niet','Deze browser of pagina staat kopiëren van afbeeldingen niet toe. Gebruik "Download molecule" in plaats daarvan.','OK')}};
 $('save').onclick=saveField;
 $('open').onclick=()=>$('file').click();
 $('file').onchange=e=>{loadFile(e.target.files[0]);e.target.value=''};
