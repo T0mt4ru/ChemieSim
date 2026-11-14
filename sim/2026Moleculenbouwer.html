@@ -90,11 +90,11 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 <div class="fileRow"><button id="save" class="btn">💾 Opslaan</button><button id="open" class="btn">📂 Openen</button></div>
 <input type="file" id="file" hidden>
 <div><h3>Op het werkveld</h3><div id="info"></div></div>
-<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Een ring sluit je door een atoom tegen beide uiteinden van een keten te leggen. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Of zet de Kopieermodus aan: dan maakt elke sleep (of tik) een kopie. Sleep naar een vuilbak om te verwijderen; klik op een vuilbak om alles te wissen. Met Opslaan bewaar je het werkveld als .mlbr-bestand, met Openen laad je het weer. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
+<p class="hint">Klik op een doosje en sleep het atoom het werkveld op. Leg atomen tegen elkaar om een binding te maken. Klik op een molecule om ze los te maken. Klik op een binding voor een dubbele of drievoudige binding. Een ring sluit je door een atoom tegen beide uiteinden van een keten te leggen. Met Ordenen zet je een geselecteerde molecule in nette bindingshoeken. Houd Shift ingedrukt terwijl je sleept om één atoom uit een molecule te halen. Houd Ctrl (Cmd op Mac) ingedrukt terwijl je sleept om een kopie van het atoom of de molecule te maken. Of zet de Kopieermodus aan: dan maakt elke sleep (of tik) een kopie. Sleep naar een vuilbak om te verwijderen; klik op een vuilbak om alles te wissen. Met Opslaan bewaar je het werkveld als .mlbr-bestand, met Openen laad je het weer. Met de schakelaar splits je het werkveld in reagentia (links) en reactieproducten (rechts), elk met een eigen telling.</p>
 </aside>
 <main id="main">
 <canvas id="cv"></canvas>
-<div id="sel"><span id="selname"></span><button id="split">Losmaken</button><button id="molDl" class="alt">Download molecule</button><button id="molCp" class="alt">Molecule naar klembord</button></div>
+<div id="sel"><span id="selname"></span><button id="split">Losmaken</button><button id="order">Ordenen</button><button id="molDl" class="alt">Download molecule</button><button id="molCp" class="alt">Molecule naar klembord</button></div>
 <div id="trashL" class="trash" title="Sleep hierheen om te verwijderen · klik om alles te wissen">🗑️</div>
 <div id="trash" class="trash" title="Sleep hierheen om te verwijderen · klik om alles te wissen">🗑️</div>
 </main>
@@ -376,6 +376,104 @@ function loadFile(f){
     if(atoms.length)showDlg('Werkveld vervangen?','Het huidige werkveld wordt vervangen door het bestand. Niet-opgeslagen werk gaat verloren.','Ja, vervang',()=>applyField(d));
     else applyField(d)
   }).catch(()=>showDlg('Kan bestand niet openen','Het bestand kon niet gelezen worden.','OK'))}
+// ===ORDENEN===
+// Molecule netjes uitleggen: VSEPR-hoeken (2D-conventie), ringen als regelmatige veelhoeken,
+// hoofdbinding op een veelvoud van 15°. Geeft true, of een tekst met de reden van falen.
+const VE={H:1,C:4,N:5,O:6,F:7,P:5,S:6,Cl:7,Br:7};
+function ordenen(c){
+  computeComps();
+  const A=atoms.filter(a=>a.c===c);if(A.length<2)return 'klein';
+  const AS=new Set(A),nb=new Map(A.map(a=>[a,[]]));
+  bonds.filter(b=>AS.has(b.a)).forEach(b=>{nb.get(b.a).push({a:b.b,o:b.o});nb.get(b.b).push({a:b.a,o:b.o})});
+  const lp=a=>a.s==='C'||a.s==='H'?0:Math.max(0,Math.floor((VE[a.s]-nb.get(a).reduce((t,e)=>t+e.o,0))/2));
+  const bent=a=>{const sn=2+lp(a);return sn<=2?Math.PI:sn===3?2*Math.PI/3:sn===4?105*Math.PI/180:Math.PI/2};
+  const len=(a,b,o)=>a.r+b.r+16-(o-1)*4;
+  // ringen via DFS
+  const par=new Map([[A[0],null]]),dep=new Map([[A[0],0]]),rings=[],inRing=new Map();
+  (function dfs(u){for(const{a:v}of nb.get(u)){
+    if(!dep.has(v)){par.set(v,u);dep.set(v,dep.get(u)+1);dfs(v)}
+    else if(v!==par.get(u)&&dep.get(v)<dep.get(u)){const r=[];for(let x=u;x!==v;x=par.get(x))r.push(x);r.push(v);rings.push(r)}}})(A[0]);
+  for(const r of rings)for(const a of r){if(inRing.has(a))return 'fused';inRing.set(a,r)}
+  const pos=new Map();let refB=null,log=[],ov=new Map();
+  const P=(a,b,ang,o)=>{const L=len(a,b,o),q=pos.get(a);return{x:q.x+L*Math.cos(ang),y:q.y+L*Math.sin(ang)}};
+  const size=(x0,from)=>{const seen=new Set([from,x0]),st=[x0];while(st.length){const x=st.pop();for(const e of nb.get(x))if(!seen.has(e.a)){seen.add(e.a);st.push(e.a)}}return seen.size-1};
+  const pen=(a,p,q,qp)=>{const d=Math.hypot(p.x-qp.x,p.y-qp.y),th=a.r+q.r+18;return(d<th?(th-d)**2:0)+(d<110?(110-d)**2*.05:0)};
+  const pick=(a,kids,opts)=>{let bi=0,bs=1e18;
+    if(ov.has(a)&&ov.get(a)<opts.length)bi=ov.get(a);
+    else opts.forEach((o,oi)=>{const cs=kids.map((e,i)=>({a:e.a,p:P(a,e.a,o[i],e.o)}));let t=0;
+      cs.forEach((x,i)=>{for(const[q,qp]of pos)if(q!==a)t+=pen(x.a,x.p,q,qp);for(let j=i+1;j<cs.length;j++)t+=pen(x.a,x.p,cs[j].a,cs[j].p)});
+      if(t<bs-1e-9){bs=t;bi=oi}});
+    log.push([a,opts.length,bi]);return opts[bi]};
+  const bySize=(a,kids)=>kids.sort((x,y)=>size(y.a,a)-size(x.a,a));
+  const settle=(a,kids,best)=>{kids.forEach((e,i)=>pos.set(e.a,P(a,e.a,best[i],e.o)));
+    kids.forEach((e,i)=>inRing.has(e.a)?ring(inRing.get(e.a),e.a,best[i],false):expand(e.a,best[i],a))};
+  function expand(a,inDir,parent){
+    const kids=nb.get(a).filter(e=>e.a!==parent&&!pos.has(e.a));
+    if(!kids.length)return;
+    bySize(a,kids);
+    const n=kids.length+(parent?1:0),st=2*Math.PI/n;let opts;
+    if(!parent){
+      if(!refB)refB=[a,kids[0].a];
+      if(n===1)opts=[[0]];
+      else if(n===2){const g=bent(a);opts=[[0,g],[0,-g]]}
+      else opts=[kids.map((_,i)=>i*st),kids.map((_,i)=>-i*st)];
+    }else{
+      const tp=inDir+Math.PI;
+      if(n===2){const g=bent(a);opts=[[tp+g],[tp-g]]}
+      else if(n===4)opts=[[2,1,3],[2,3,1],[1,2,3],[3,2,1],[1,3,2],[3,1,2]].map(sl=>sl.map(k=>tp+k*st));
+      else{const sl=kids.map((_,i)=>i+1);opts=[sl.map(k=>tp+k*st),sl.map(k=>tp-k*st)]}}
+    settle(a,kids,pick(a,kids,opts))}
+  function ring(r0,attach,inDir,isRoot){
+    const n=r0.length,i0=r0.indexOf(attach),r=r0.slice(i0).concat(r0.slice(0,i0));
+    let sd=0;for(let k=0;k<n;k++){const a=r[k],b=r[(k+1)%n];sd+=len(a,b,nb.get(a).find(e=>e.a===b).o)}
+    sd/=n;const R=sd/(2*Math.sin(Math.PI/n)),a0=isRoot?-Math.PI/2:inDir+Math.PI;
+    const ctr=isRoot?{x:0,y:0}:{x:pos.get(attach).x+R*Math.cos(inDir),y:pos.get(attach).y+R*Math.sin(inDir)};
+    const ang=r.map((a,k)=>a0+k*2*Math.PI/n);
+    r.forEach((a,k)=>pos.set(a,{x:ctr.x+R*Math.cos(ang[k]),y:ctr.y+R*Math.sin(ang[k])}));
+    if(isRoot)refB=[r[0],r[1]];
+    r.forEach((a,k)=>{
+      const ex=nb.get(a).filter(e=>!r.includes(e.a)&&!pos.has(e.a));if(!ex.length)return;
+      bySize(a,ex);const m=ex.length,t=ang[k];
+      let offs=(a===attach&&!isRoot)?[60,-60,120,-120].slice(0,m):m===1?[0]:m===2?[-40,40]:Array.from({length:m},(_,i)=>(i-(m-1)/2)*60);
+      offs=offs.map(d=>d*Math.PI/180);
+      settle(a,ex,pick(a,ex,[offs.map(d=>t+d),offs.map(d=>t-d)]))})}
+  const root=A.reduce((m,a)=>nb.get(a).length>nb.get(m).length?a:m,A[0]);
+  const build=()=>{pos.clear();refB=null;log=[];
+    if(rings.length)ring(rings[0],rings[0][0],0,true);else{pos.set(root,{x:0,y:0});expand(root,null,null)}};
+  const bonded=(a,b)=>nb.get(a).some(e=>e.a===b);
+  const gs=()=>{let t=0;for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++)if(!bonded(A[i],A[j]))t+=pen(A[i],pos.get(A[i]),A[j],pos.get(A[j]));return t+20*hs()};
+  build();
+  if(pos.size!==A.length)return 'fout';
+  const hs=()=>{let t=0;for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++){const a=A[i],b=A[j];if(bonded(a,b))continue;const p=pos.get(a),q=pos.get(b),d=Math.hypot(p.x-q.x,p.y-q.y),th=a.r+b.r+18;if(d<th)t+=(th-d)**2}return t};
+  let cur=gs();
+  if(hs()>0){ // drukke molecule: willekeurige combinaties van keuzes proberen
+    const base=log.slice(),t0=Date.now();let bestOv=ov,bestS=cur;
+    for(let n=0;n<400&&Date.now()-t0<400;n++){
+      ov=new Map(base.map(([a,k])=>[a,Math.floor(Math.random()*k)]));build();
+      if(pos.size!==A.length)continue;const sc=gs();if(sc<bestS){bestS=sc;bestOv=ov}}
+    ov=bestOv;build();cur=gs()}
+  // per keuze alternatieven proberen en het beste houden
+  for(let it=0;it<30&&cur>1;it++){
+    let imp=false;
+    for(const[a,k,ch]of log.slice()){
+      for(let i=0;i<k&&!imp;i++){if(i===ch)continue;
+        const o0=ov;ov=new Map(ov);ov.set(a,i);build();const sc=gs();
+        if(sc<cur-1e-6){cur=sc;imp=true}else ov=o0}
+      if(imp)break}
+    if(!imp)break}
+  build();
+  // uitlijnen: hoofdbinding op veelvoud van 15°, huidige oriëntatie en zwaartepunt behouden
+  const th=(p,q)=>Math.atan2(q.y-p.y,q.x-p.x),u=Math.PI/12,[b0,b1]=refB;
+  const dl=Math.round(th(b0,b1)/u)*u-th(pos.get(b0),pos.get(b1)),cs=Math.cos(dl),sn=Math.sin(dl);
+  const rot=new Map(A.map(a=>{const q=pos.get(a);return[a,{x:q.x*cs-q.y*sn,y:q.x*sn+q.y*cs}]}));
+  const mean=f=>A.reduce((t,a)=>t+f(a),0)/A.length;
+  const sx=mean(a=>a.x)-mean(a=>rot.get(a).x),sy=mean(a=>a.y)-mean(a=>rot.get(a).y);
+  const X=a=>rot.get(a).x+sx,Y=a=>rot.get(a).y+sy;
+  const mnx=Math.min(...A.map(a=>X(a)-a.r)),mxx=Math.max(...A.map(a=>X(a)+a.r)),mny=Math.min(...A.map(a=>Y(a)-a.r)),mxy=Math.max(...A.map(a=>Y(a)+a.r));
+  const fx=mnx<0?-mnx:mxx>W?W-mxx:0,fy=mny<0?-mny:mxy>H?H-mxy:0;
+  A.forEach(a=>{a.x=X(a)+fx;a.y=Y(a)+fy});
+  return true}
+// ===EINDE===
 // molecule als transparante PNG
 const plain=t=>t.replace(/[₀-₉]/g,d=>'₀₁₂₃₄₅₆₇₈₉'.indexOf(d));
 function renderMol(c,sc=3){
@@ -397,6 +495,9 @@ function renderMol(c,sc=3){
   return cvs}
 const molBlob=c=>new Promise(res=>renderMol(c).toBlob(res,'image/png'));
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
+$('order').onclick=()=>{if(!sel)return;const r=ordenen(sel.c);
+  if(r==='fused')showDlg('Ordenen niet mogelijk','Moleculen met gefuseerde ringen (zoals naftaleen) kunnen nog niet geordend worden.','OK');
+  else if(r!==true)showDlg('Ordenen niet gelukt','Deze molecule kon niet geordend worden.','OK')};
 $('molDl').onclick=()=>{if(!sel)return;computeComps();const c=sel.c,m={};
   atoms.filter(a=>a.c===c).forEach(a=>m[a.s]=(m[a.s]||0)+1);
   molBlob(c).then(b=>saveBlob(b,plain(formula(m))+'.png','image/png','.png','PNG-afbeelding'))};
