@@ -102,419 +102,419 @@ aside{border-right:0;border-bottom:1px solid var(--border);max-height:42vh;paddi
 <div id="toast"></div>
 <div id="dlg"><div class="card"><h2 id="dlgT"></h2><p id="dlgP"></p><div class="row"><button id="dlgNo">Annuleren</button><button id="dlgYes"></button></div></div></div>
 <script>
-const EL={
-H:{n:'Waterstof',c:'#f2f2f2',r:17,v:1,t:'#222'},
-C:{n:'Koolstof',c:'#6b7482',r:25,v:4,t:'#fff'},
-N:{n:'Stikstof',c:'#3a5bff',r:23,v:3,t:'#fff'},
-O:{n:'Zuurstof',c:'#f03030',r:23,v:2,t:'#fff'},
-F:{n:'Fluor',c:'#8fe04a',r:20,v:1,t:'#222'},
-P:{n:'Fosfor',c:'#ff8c1a',r:27,v:5,t:'#222'},
-S:{n:'Zwavel',c:'#f5e030',r:28,v:6,t:'#222'},
-Cl:{n:'Chloor',c:'#2fd62f',r:29,v:1,t:'#222'},
-Br:{n:'Broom',c:'#a52a2a',r:32,v:1,t:'#fff'}};
-const $=id=>document.getElementById(id);
-const cv=$('cv'),ctx=cv.getContext('2d'),main=$('main');
-let W=0,H=0,atoms=[],bonds=[],drag=null,sel=null,nid=1,theme={},lastInfo='',splitMode=false,copyMode=false,fr=0;
+const ELEMENTEN={
+H:{naamAtoom:'Waterstof',kleurAtoom:'#f2f2f2',straalAtoom:17,valentieAtoom:1,tekstkleurAtoom:'#222'},
+C:{naamAtoom:'Koolstof',kleurAtoom:'#6b7482',straalAtoom:25,valentieAtoom:4,tekstkleurAtoom:'#fff'},
+N:{naamAtoom:'Stikstof',kleurAtoom:'#3a5bff',straalAtoom:23,valentieAtoom:3,tekstkleurAtoom:'#fff'},
+O:{naamAtoom:'Zuurstof',kleurAtoom:'#f03030',straalAtoom:23,valentieAtoom:2,tekstkleurAtoom:'#fff'},
+F:{naamAtoom:'Fluor',kleurAtoom:'#8fe04a',straalAtoom:20,valentieAtoom:1,tekstkleurAtoom:'#222'},
+P:{naamAtoom:'Fosfor',kleurAtoom:'#ff8c1a',straalAtoom:27,valentieAtoom:5,tekstkleurAtoom:'#222'},
+S:{naamAtoom:'Zwavel',kleurAtoom:'#f5e030',straalAtoom:28,valentieAtoom:6,tekstkleurAtoom:'#222'},
+Cl:{naamAtoom:'Chloor',kleurAtoom:'#2fd62f',straalAtoom:29,valentieAtoom:1,tekstkleurAtoom:'#222'},
+Br:{naamAtoom:'Broom',kleurAtoom:'#a52a2a',straalAtoom:32,valentieAtoom:1,tekstkleurAtoom:'#fff'}};
+const haalElement=elementId=>document.getElementById(elementId);
+const canvas=haalElement('cv'),tekenContext=canvas.getContext('2d'),werkveld=haalElement('main');
+let breedte=0,hoogte=0,atomen=[],bindingen=[],sleepActie=null,geselecteerdAtoom=null,volgendeAtoomId=1,themakleuren={},laatsteInfoHtml='',gesplitstModus=false,kopieerModus=false,frameTeller=0;
 
-function readTheme(){const s=getComputedStyle(document.documentElement);['--canvas','--bond','--accent','--accent2','--muted'].forEach(k=>theme[k]=s.getPropertyValue(k).trim())}
-function resize(){const r=main.getBoundingClientRect(),d=window.devicePixelRatio||1;W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);readTheme()}
-new ResizeObserver(resize).observe(main);
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readTheme);
+function leesThemakleuren(){const stijl=getComputedStyle(document.documentElement);['--canvas','--bond','--accent','--accent2','--muted'].forEach(themaVariabele=>themakleuren[themaVariabele]=stijl.getPropertyValue(themaVariabele).trim())}
+function pasCanvasAan(){const werkveldRechthoek=werkveld.getBoundingClientRect(),pixelRatio=window.devicePixelRatio||1;breedte=werkveldRechthoek.width;hoogte=werkveldRechthoek.height;canvas.width=breedte*pixelRatio;canvas.height=hoogte*pixelRatio;tekenContext.setTransform(pixelRatio,0,0,pixelRatio,0,0);leesThemakleuren()}
+new ResizeObserver(pasCanvasAan).observe(werkveld);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',leesThemakleuren);
 
-// boxes
-Object.entries(EL).forEach(([s,e])=>{
-  const b=document.createElement('div');b.className='box';
-  b.innerHTML=`<span class="dot" style="background:${e.c};color:${e.t}">${s}</span><span>${e.n}</span>`;
-  b.addEventListener('pointerdown',ev=>{ev.preventDefault();const p=pos(ev);
-    const a=newAtom(s,Math.min(W-30,Math.max(30,p.x)),Math.min(H-30,Math.max(30,p.y)));
-    computeComps();drag={atom:a,set:[a],ox:0,oy:0,moved:true,sx:ev.clientX,sy:ev.clientY};updateInfo()});
-  $('boxes').appendChild(b)});
+// doosjes met atomen
+Object.entries(ELEMENTEN).forEach(([symbool,elementDefinitie])=>{
+  const doosje=document.createElement('div');doosje.className='box';
+  doosje.innerHTML=`<span class="dot" style="background:${elementDefinitie.kleurAtoom};color:${elementDefinitie.tekstkleurAtoom}">${symbool}</span><span>${elementDefinitie.naamAtoom}</span>`;
+  doosje.addEventListener('pointerdown',gebeurtenis=>{gebeurtenis.preventDefault();const muisPositie=bepaalMuispositie(gebeurtenis);
+    const nieuwAtom=maakAtoom(symbool,Math.min(breedte-30,Math.max(30,muisPositie.x)),Math.min(hoogte-30,Math.max(30,muisPositie.y)));
+    bepaalMoleculen();sleepActie={atom:nieuwAtom,moleculeAtomen:[nieuwAtom],grijpAfstandX:0,grijpAfstandY:0,verplaatst:true,startClientX:gebeurtenis.clientX,startClientY:gebeurtenis.clientY};werkInfoBij()});
+  haalElement('boxes').appendChild(doosje)});
 
-function newAtom(s,x,y){const a={id:nid++,s,x,y,r:EL[s].r,c:-1,adj:[],used:0,pin:false};atoms.push(a);return a}
-function pos(e){const r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-const free=a=>EL[a.s].v-a.used;
+function maakAtoom(symbool,x,y){const atoom={id:volgendeAtoomId++,symbool:symbool,x:x,y:y,straalAtoom:ELEMENTEN[symbool].straalAtoom,componentNr:-1,buren:[],gebruikteValentie:0,vastgepind:false};atomen.push(atoom);return atoom}
+function bepaalMuispositie(gebeurtenis){const canvasRechthoek=canvas.getBoundingClientRect();return{x:gebeurtenis.clientX-canvasRechthoek.left,y:gebeurtenis.clientY-canvasRechthoek.top}}
+const vrijeValentie=atoom=>ELEMENTEN[atoom.symbool].valentieAtoom-atoom.gebruikteValentie;
 
-function computeComps(){
-  atoms.forEach(a=>{a.c=-1;a.adj=[];a.used=0});
-  bonds.forEach(b=>{b.a.adj.push(b.b);b.b.adj.push(b.a);b.a.used+=b.o;b.b.used+=b.o});
-  let id=0;
-  atoms.forEach(a=>{if(a.c<0){const st=[a];a.c=id;while(st.length){const x=st.pop();x.adj.forEach(y=>{if(y.c<0){y.c=id;st.push(y)}})}id++}});
-  return id}
+function bepaalMoleculen(){
+  atomen.forEach(atoom=>{atoom.componentNr=-1;atoom.buren=[];atoom.gebruikteValentie=0});
+  bindingen.forEach(binding=>{binding.atoomA.buren.push(binding.atoomB);binding.atoomB.buren.push(binding.atoomA);binding.atoomA.gebruikteValentie+=binding.bindingsorde;binding.atoomB.gebruikteValentie+=binding.bindingsorde});
+  let moleculeNr=0;
+  atomen.forEach(atoom=>{if(atoom.componentNr<0){const stapel=[atoom];atoom.componentNr=moleculeNr;while(stapel.length){const huidigAtoom=stapel.pop();huidigAtoom.buren.forEach(buurAtoom=>{if(buurAtoom.componentNr<0){buurAtoom.componentNr=moleculeNr;stapel.push(buurAtoom)}})}moleculeNr++}});
+  return moleculeNr}
 
-// Bindingen die bij loslaten van 'set' ontstaan (zonder iets te wijzigen).
+// Bindingen die bij loslaten van de gesleepte atomen ontstaan (zonder iets te wijzigen).
 // Eerst binden met andere moleculen (<12 px speling); daarna mag hetzelfde atoom ook
 // een ring sluiten met een niet-aangrenzend atoom van dezelfde molecule (<20 px speling).
-function plan(set){
-  const S=new Set(set),used=new Map(),comp=new Map(),adj=new Map(),out=[];
-  atoms.forEach(a=>{used.set(a,a.used);comp.set(a,a.c);adj.set(a,new Set(a.adj))});
-  const fr=a=>EL[a.s].v-used.get(a);
-  for(let g=0;g<12;g++){
-    let best=null,bd=1e9;
-    for(const a of set){
-      if(fr(a)<1)continue;
-      for(const b of atoms){
-        if(b===a||S.has(b)||fr(b)<1||adj.get(a).has(b)||(a.keep&&b.dup)||(a.dup&&b.keep))continue;
-        const same=comp.get(a)===comp.get(b);
-        if(same){let tri=false;for(const n of adj.get(a))if(adj.get(b).has(n)){tri=true;break}if(tri)continue}
-        const d=Math.hypot(a.x-b.x,a.y-b.y);
-        if(d<a.r+b.r+(same?20:12)&&d<bd){bd=d;best=[a,b]}}}
-    if(!best)break;
-    const[a,b]=best,ca=comp.get(a),cb=comp.get(b);
-    out.push(best);used.set(a,used.get(a)+1);used.set(b,used.get(b)+1);adj.get(a).add(b);adj.get(b).add(a);
-    if(ca!==cb)atoms.forEach(x=>{if(comp.get(x)===cb)comp.set(x,ca)})}
-  return out}
-function tryBond(set){computeComps();plan(set).forEach(([a,b])=>bonds.push({a,b,o:1}))}
+function bepaalNieuweBindingen(sleepAtomen){
+  const sleepAtomenSet=new Set(sleepAtomen),gebruikt=new Map(),moleculeNrPerAtoom=new Map(),burenPerAtoom=new Map(),nieuweBindingen=[];
+  atomen.forEach(atoom=>{gebruikt.set(atoom,atoom.gebruikteValentie);moleculeNrPerAtoom.set(atoom,atoom.componentNr);burenPerAtoom.set(atoom,new Set(atoom.buren))});
+  const restValentie=atoom=>ELEMENTEN[atoom.symbool].valentieAtoom-gebruikt.get(atoom);
+  for(let poging=0;poging<12;poging++){
+    let besteKandidaat=null,kortsteAfstand=1e9;
+    for(const atoom of sleepAtomen){
+      if(restValentie(atoom)<1)continue;
+      for(const anderAtoom of atomen){
+        if(anderAtoom===atoom||sleepAtomenSet.has(anderAtoom)||restValentie(anderAtoom)<1||burenPerAtoom.get(atoom).has(anderAtoom)||(atoom.isOrigineel&&anderAtoom.isKopie)||(atoom.isKopie&&anderAtoom.isOrigineel))continue;
+        const zelfdeMolecule=moleculeNrPerAtoom.get(atoom)===moleculeNrPerAtoom.get(anderAtoom);
+        if(zelfdeMolecule){let vormtDriehoek=false;for(const buurAtoom of burenPerAtoom.get(atoom))if(burenPerAtoom.get(anderAtoom).has(buurAtoom)){vormtDriehoek=true;break}if(vormtDriehoek)continue}
+        const afstand=Math.hypot(atoom.x-anderAtoom.x,atoom.y-anderAtoom.y);
+        if(afstand<atoom.straalAtoom+anderAtoom.straalAtoom+(zelfdeMolecule?20:12)&&afstand<kortsteAfstand){kortsteAfstand=afstand;besteKandidaat=[atoom,anderAtoom]}}}
+    if(!besteKandidaat)break;
+    const[atoom,anderAtoom]=besteKandidaat,moleculeNrA=moleculeNrPerAtoom.get(atoom),moleculeNrB=moleculeNrPerAtoom.get(anderAtoom);
+    nieuweBindingen.push(besteKandidaat);gebruikt.set(atoom,gebruikt.get(atoom)+1);gebruikt.set(anderAtoom,gebruikt.get(anderAtoom)+1);burenPerAtoom.get(atoom).add(anderAtoom);burenPerAtoom.get(anderAtoom).add(atoom);
+    if(moleculeNrA!==moleculeNrB)atomen.forEach(atoom=>{if(moleculeNrPerAtoom.get(atoom)===moleculeNrB)moleculeNrPerAtoom.set(atoom,moleculeNrA)})}
+  return nieuweBindingen}
+function maakBindingen(sleepAtomen){bepaalMoleculen();bepaalNieuweBindingen(sleepAtomen).forEach(([eersteAtoom,tweedeAtoom])=>bindingen.push({atoomA:eersteAtoom,atoomB:tweedeAtoom,bindingsorde:1}))}
 
-// physics
-function step(){
-  computeComps();
-  atoms.forEach(a=>a.pin=false);if(drag)drag.atom.pin=true;
-  for(let it=0;it<2;it++){
-    for(const b of bonds){
-      const a=b.a,c=b.b;let dx=c.x-a.x,dy=c.y-a.y;const d=Math.hypot(dx,dy)||1;
-      const rest=(a.r+c.r)+16-(b.o-1)*4,k=(d-rest)/d*0.3;
-      const wa=a.pin?0:1,wc=c.pin?0:1,sm=wa+wc;if(!sm)continue;
-      a.x+=dx*k*wa/sm;a.y+=dy*k*wa/sm;c.x-=dx*k*wc/sm;c.y-=dy*k*wc/sm}
-    for(let i=0;i<atoms.length;i++)for(let j=i+1;j<atoms.length;j++){
-      const a=atoms[i],c=atoms[j];let dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy);
-      const same=a.c===c.c;
-      if(same&&a.adj.includes(c))continue;
-      if((a.keep&&c.dup)||(a.dup&&c.keep))continue;
-      const min=same?(a.r+c.r)*1.9:a.r+c.r+2;
-      if(d>=min)continue;
-      if(d<0.01){dx=Math.random()-.5;dy=Math.random()-.5;d=Math.hypot(dx,dy)}
-      const push=(min-d)*(same?0.08:0.5)/d;
-      const wa=a.pin?0:1,wc=c.pin?0:1,sm=wa+wc;if(!sm)continue;
-      a.x-=dx*push*wa/sm*2;a.y-=dy*push*wa/sm*2;c.x+=dx*push*wc/sm*2;c.y+=dy*push*wc/sm*2}
+// fysica
+function fysicaStap(){
+  bepaalMoleculen();
+  atomen.forEach(atoom=>atoom.vastgepind=false);if(sleepActie)sleepActie.atom.vastgepind=true;
+  for(let iteratie=0;iteratie<2;iteratie++){
+    for(const binding of bindingen){
+      const atoomA=binding.atoomA,atoomB=binding.atoomB;let verschilX=atoomB.x-atoomA.x,verschilY=atoomB.y-atoomA.y;const afstand=Math.hypot(verschilX,verschilY)||1;
+      const rustlengte=(atoomA.straalAtoom+atoomB.straalAtoom)+16-(binding.bindingsorde-1)*4,veerFactor=(afstand-rustlengte)/afstand*0.3;
+      const gewichtA=atoomA.vastgepind?0:1,gewichtB=atoomB.vastgepind?0:1,somGewichten=gewichtA+gewichtB;if(!somGewichten)continue;
+      atoomA.x+=verschilX*veerFactor*gewichtA/somGewichten;atoomA.y+=verschilY*veerFactor*gewichtA/somGewichten;atoomB.x-=verschilX*veerFactor*gewichtB/somGewichten;atoomB.y-=verschilY*veerFactor*gewichtB/somGewichten}
+    for(let indexA=0;indexA<atomen.length;indexA++)for(let indexB=indexA+1;indexB<atomen.length;indexB++){
+      const atoomA=atomen[indexA],atoomB=atomen[indexB];let verschilX=atoomB.x-atoomA.x,verschilY=atoomB.y-atoomA.y,afstand=Math.hypot(verschilX,verschilY);
+      const zelfdeMolecule=atoomA.componentNr===atoomB.componentNr;
+      if(zelfdeMolecule&&atoomA.buren.includes(atoomB))continue;
+      if((atoomA.isOrigineel&&atoomB.isKopie)||(atoomA.isKopie&&atoomB.isOrigineel))continue;
+      const minimaleAfstand=zelfdeMolecule?(atoomA.straalAtoom+atoomB.straalAtoom)*1.9:atoomA.straalAtoom+atoomB.straalAtoom+2;
+      if(afstand>=minimaleAfstand)continue;
+      if(afstand<0.01){verschilX=Math.random()-.5;verschilY=Math.random()-.5;afstand=Math.hypot(verschilX,verschilY)}
+      const duwFactor=(minimaleAfstand-afstand)*(zelfdeMolecule?0.08:0.5)/afstand;
+      const gewichtA=atoomA.vastgepind?0:1,gewichtB=atoomB.vastgepind?0:1,somGewichten=gewichtA+gewichtB;if(!somGewichten)continue;
+      atoomA.x-=verschilX*duwFactor*gewichtA/somGewichten*2;atoomA.y-=verschilY*duwFactor*gewichtA/somGewichten*2;atoomB.x+=verschilX*duwFactor*gewichtB/somGewichten*2;atoomB.y+=verschilY*duwFactor*gewichtB/somGewichten*2}
   }
-  atoms.forEach(a=>{a.x=Math.min(W-a.r,Math.max(a.r,a.x));a.y=Math.min(H-a.r,Math.max(a.y,a.r))});
+  atomen.forEach(atoom=>{atoom.x=Math.min(breedte-atoom.straalAtoom,Math.max(atoom.straalAtoom,atoom.x));atoom.y=Math.min(hoogte-atoom.straalAtoom,Math.max(atoom.y,atoom.straalAtoom))});
 }
 
-// drawing
-function drawSplit(){
-  ctx.fillStyle='rgba(55,138,221,.05)';ctx.fillRect(0,0,W/2,H);
-  ctx.fillStyle='rgba(93,202,165,.05)';ctx.fillRect(W/2,0,W/2,H);
-  ctx.save();ctx.setLineDash([8,6]);ctx.strokeStyle=theme['--accent'];ctx.globalAlpha=.6;ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();ctx.restore();
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font="700 11px 'Space Mono',monospace";
-  ctx.fillStyle=theme['--accent2'];ctx.fillText('REAGENTIA',W/4,22);
-  ctx.fillStyle=theme['--accent'];ctx.fillText('REACTIEPRODUCTEN',W*3/4,22);
-  ctx.fillStyle=theme['--muted'];ctx.font="700 22px 'Space Mono',monospace";ctx.fillText('→',W/2,22)}
-function draw(){
-  step();
-  ctx.clearRect(0,0,W,H);
-  if(splitMode){drawSplit();if(++fr%10===0)updateInfo()}
-  const selC=sel&&atoms.includes(sel)?sel.c:-1;
-  ctx.lineCap='round';ctx.strokeStyle=theme['--bond'];ctx.lineWidth=3.5;
-  for(const b of bonds){
-    const dx=b.b.x-b.a.x,dy=b.b.y-b.a.y,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;
-    const offs=b.o===1?[0]:b.o===2?[-4,4]:[-7,0,7];
-    for(const o of offs){ctx.beginPath();ctx.moveTo(b.a.x+nx*o,b.a.y+ny*o);ctx.lineTo(b.b.x+nx*o,b.b.y+ny*o);ctx.stroke()}}
-  if(drag){const ps=plan(drag.set);
-    if(ps.length){ctx.save();ctx.strokeStyle=theme['--accent'];ctx.lineWidth=3;ctx.setLineDash([6,5]);
-      ctx.beginPath();ps.forEach(p=>{ctx.moveTo(p[0].x,p[0].y);ctx.lineTo(p[1].x,p[1].y)});ctx.stroke();ctx.restore()}}
-  for(const a of atoms){
-    const e=EL[a.s];
-    if(a.c===selC){ctx.beginPath();ctx.arc(a.x,a.y,a.r+6,0,7);ctx.strokeStyle=theme['--accent'];ctx.lineWidth=3;ctx.stroke()}
-    const g=ctx.createRadialGradient(a.x-a.r*.35,a.y-a.r*.4,a.r*.1,a.x,a.y,a.r);
-    g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(.35,e.c);g.addColorStop(1,e.c);
-    ctx.beginPath();ctx.arc(a.x,a.y,a.r,0,7);ctx.fillStyle=e.c;ctx.fill();ctx.fillStyle=g;ctx.fill();
-    ctx.lineWidth=1.5;ctx.strokeStyle='rgba(255,255,255,.28)';ctx.stroke();
-    ctx.fillStyle=e.t;ctx.font=`700 ${Math.round(a.r*.8)}px 'Space Mono',monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(a.s,a.x,a.y+1)}
-  requestAnimationFrame(draw)}
+// tekenen
+function tekenSplitsing(){
+  tekenContext.fillStyle='rgba(55,138,221,.05)';tekenContext.fillRect(0,0,breedte/2,hoogte);
+  tekenContext.fillStyle='rgba(93,202,165,.05)';tekenContext.fillRect(breedte/2,0,breedte/2,hoogte);
+  tekenContext.save();tekenContext.setLineDash([8,6]);tekenContext.strokeStyle=themakleuren['--accent'];tekenContext.globalAlpha=.6;tekenContext.lineWidth=1.5;
+  tekenContext.beginPath();tekenContext.moveTo(breedte/2,0);tekenContext.lineTo(breedte/2,hoogte);tekenContext.stroke();tekenContext.restore();
+  tekenContext.textAlign='center';tekenContext.textBaseline='middle';
+  tekenContext.font="700 11px 'Space Mono',monospace";
+  tekenContext.fillStyle=themakleuren['--accent2'];tekenContext.fillText('REAGENTIA',breedte/4,22);
+  tekenContext.fillStyle=themakleuren['--accent'];tekenContext.fillText('REACTIEPRODUCTEN',breedte*3/4,22);
+  tekenContext.fillStyle=themakleuren['--muted'];tekenContext.font="700 22px 'Space Mono',monospace";tekenContext.fillText('→',breedte/2,22)}
+function tekenFrame(){
+  fysicaStap();
+  tekenContext.clearRect(0,0,breedte,hoogte);
+  if(gesplitstModus){tekenSplitsing();if(++frameTeller%10===0)werkInfoBij()}
+  const geselecteerdeMoleculeNr=geselecteerdAtoom&&atomen.includes(geselecteerdAtoom)?geselecteerdAtoom.componentNr:-1;
+  tekenContext.lineCap='round';tekenContext.strokeStyle=themakleuren['--bond'];tekenContext.lineWidth=3.5;
+  for(const binding of bindingen){
+    const verschilX=binding.atoomB.x-binding.atoomA.x,verschilY=binding.atoomB.y-binding.atoomA.y,lengte=Math.hypot(verschilX,verschilY)||1,normaalX=-verschilY/lengte,normaalY=verschilX/lengte;
+    const lijnVerschuivingen=binding.bindingsorde===1?[0]:binding.bindingsorde===2?[-4,4]:[-7,0,7];
+    for(const verschuiving of lijnVerschuivingen){tekenContext.beginPath();tekenContext.moveTo(binding.atoomA.x+normaalX*verschuiving,binding.atoomA.y+normaalY*verschuiving);tekenContext.lineTo(binding.atoomB.x+normaalX*verschuiving,binding.atoomB.y+normaalY*verschuiving);tekenContext.stroke()}}
+  if(sleepActie){const voorbeeldBindingen=bepaalNieuweBindingen(sleepActie.moleculeAtomen);
+    if(voorbeeldBindingen.length){tekenContext.save();tekenContext.strokeStyle=themakleuren['--accent'];tekenContext.lineWidth=3;tekenContext.setLineDash([6,5]);
+      tekenContext.beginPath();voorbeeldBindingen.forEach(nieuweBinding=>{tekenContext.moveTo(nieuweBinding[0].x,nieuweBinding[0].y);tekenContext.lineTo(nieuweBinding[1].x,nieuweBinding[1].y)});tekenContext.stroke();tekenContext.restore()}}
+  for(const atoom of atomen){
+    const elementDefinitie=ELEMENTEN[atoom.symbool];
+    if(atoom.componentNr===geselecteerdeMoleculeNr){tekenContext.beginPath();tekenContext.arc(atoom.x,atoom.y,atoom.straalAtoom+6,0,7);tekenContext.strokeStyle=themakleuren['--accent'];tekenContext.lineWidth=3;tekenContext.stroke()}
+    const kleurverloop=tekenContext.createRadialGradient(atoom.x-atoom.straalAtoom*.35,atoom.y-atoom.straalAtoom*.4,atoom.straalAtoom*.1,atoom.x,atoom.y,atoom.straalAtoom);
+    kleurverloop.addColorStop(0,'rgba(255,255,255,.55)');kleurverloop.addColorStop(.35,elementDefinitie.kleurAtoom);kleurverloop.addColorStop(1,elementDefinitie.kleurAtoom);
+    tekenContext.beginPath();tekenContext.arc(atoom.x,atoom.y,atoom.straalAtoom,0,7);tekenContext.fillStyle=elementDefinitie.kleurAtoom;tekenContext.fill();tekenContext.fillStyle=kleurverloop;tekenContext.fill();
+    tekenContext.lineWidth=1.5;tekenContext.strokeStyle='rgba(255,255,255,.28)';tekenContext.stroke();
+    tekenContext.fillStyle=elementDefinitie.tekstkleurAtoom;tekenContext.font=`700 ${Math.round(atoom.straalAtoom*.8)}px 'Space Mono',monospace`;tekenContext.textAlign='center';tekenContext.textBaseline='middle';
+    tekenContext.fillText(atoom.symbool,atoom.x,atoom.y+1)}
+  requestAnimationFrame(tekenFrame)}
 
-// info
-const sub=s=>s.replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]);
+// informatiepaneel
+const naarSubscript=tekst=>tekst.replace(/\d/g,cijfer=>'₀₁₂₃₄₅₆₇₈₉'[cijfer]);
 // Volgorde voor stoffen zonder koolstof (minst → meest elektronegatief)
-const ORD=['C','H','P','S','Br','N','Cl','O','F'];
+const VOLGORDE_ELEMENTEN=['C','H','P','S','Br','N','Cl','O','F'];
 // Uitzonderingen op de regel: sleutel = elementen alfabetisch met aantal, waarde = gewenste volgorde
-// Aanvullen kan hier: bv. 'H3As1':['As','H'] (element moet dan ook in EL en ORD staan)
-const EXC={'H3N1':['N','H'],'H3P1':['P','H'],'H4N2':['N','H'],'C1H1N1':['H','C','N']};
-function formula(cnt){
-  const key=Object.keys(cnt).sort().map(x=>x+cnt[x]).join('');
-  let k=EXC[key];
-  if(!k){
-    k=Object.keys(cnt);
-    if(cnt.C)k=['C',...(cnt.H?['H']:[]),...k.filter(x=>x!=='C'&&x!=='H').sort()]; // Hill-notatie
-    else k.sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b))}
-  return k.map(x=>x+(cnt[x]>1?sub(String(cnt[x])):'')).join('')}
-function summarize(ms){
-  const tot={},groups={};
-  ms.forEach(m=>{const f=formula(m);groups[f]=(groups[f]||0)+1;for(const s in m)tot[s]=(tot[s]||0)+m[s]});
-  return{tot,groups,n:Object.values(tot).reduce((a,b)=>a+b,0)}}
-function chipsHtml(r){
-  return `<div class="chips">${Object.keys(r.tot).sort().map(s=>`<span class="chip"><b>${s}</b> × ${r.tot[s]}</span>`).join('')}</div>`+
-    `<div class="chips">${Object.entries(r.groups).map(([f,c])=>`<span class="chip">${c>1?c+' × ':''}${f}</span>`).join('')}</div>`}
-function sideHtml(cls,title,r){
-  return `<div class="side ${cls}"><h4><span>${title}</span><span>${r.n} atomen</span></h4>${r.n?chipsHtml(r):'<span class="hint">Leeg</span>'}</div>`}
-function updateInfo(){
-  if(sel&&!atoms.includes(sel))sel=null;
-  const n=computeComps(),mol=Array.from({length:n},()=>({})),sx=Array(n).fill(0),sn=Array(n).fill(0);
-  atoms.forEach(a=>{mol[a.c][a.s]=(mol[a.c][a.s]||0)+1;sx[a.c]+=a.x;sn[a.c]++});
-  let html;
-  if(!atoms.length&&!splitMode)html='<span class="hint">Nog niets op het werkveld.</span>';
-  else if(!splitMode)html=chipsHtml(summarize(mol)).replace('<div class="chips">','<div class="chips" style="margin-bottom:8px">');
+// Aanvullen kan hier: bv. 'H3As1':['As','H'] (element moet dan ook in ELEMENTEN en VOLGORDE_ELEMENTEN staan)
+const FORMULE_UITZONDERINGEN={'H3N1':['N','H'],'H3P1':['P','H'],'H4N2':['N','H'],'C1H1N1':['H','C','N']};
+function bouwFormule(aantallen){
+  const sleutel=Object.keys(aantallen).sort().map(symbool=>symbool+aantallen[symbool]).join('');
+  let volgorde=FORMULE_UITZONDERINGEN[sleutel];
+  if(!volgorde){
+    volgorde=Object.keys(aantallen);
+    if(aantallen.C)volgorde=['C',...(aantallen.H?['H']:[]),...volgorde.filter(symbool=>symbool!=='C'&&symbool!=='H').sort()]; // Hill-notatie
+    else volgorde.sort((eersteSymbool,tweedeSymbool)=>VOLGORDE_ELEMENTEN.indexOf(eersteSymbool)-VOLGORDE_ELEMENTEN.indexOf(tweedeSymbool))}
+  return volgorde.map(symbool=>symbool+(aantallen[symbool]>1?naarSubscript(String(aantallen[symbool])):'')).join('')}
+function vatSamen(moleculeTellingen){
+  const totaalPerElement={},groepen={};
+  moleculeTellingen.forEach(moleculeTelling=>{const formule=bouwFormule(moleculeTelling);groepen[formule]=(groepen[formule]||0)+1;for(const symbool in moleculeTelling)totaalPerElement[symbool]=(totaalPerElement[symbool]||0)+moleculeTelling[symbool]});
+  return{totaalPerElement:totaalPerElement,groepen:groepen,aantalAtomen:Object.values(totaalPerElement).reduce((som,aantal)=>som+aantal,0)}}
+function chipsNaarHtml(samenvatting){
+  return `<div class="chips">${Object.keys(samenvatting.totaalPerElement).sort().map(symbool=>`<span class="chip"><b>${symbool}</b> × ${samenvatting.totaalPerElement[symbool]}</span>`).join('')}</div>`+
+    `<div class="chips">${Object.entries(samenvatting.groepen).map(([formule,aantal])=>`<span class="chip">${aantal>1?aantal+' × ':''}${formule}</span>`).join('')}</div>`}
+function zijdeNaarHtml(cssKlasse,titel,samenvatting){
+  return `<div class="side ${cssKlasse}"><h4><span>${titel}</span><span>${samenvatting.aantalAtomen} atomen</span></h4>${samenvatting.aantalAtomen?chipsNaarHtml(samenvatting):'<span class="hint">Leeg</span>'}</div>`}
+function werkInfoBij(){
+  if(geselecteerdAtoom&&!atomen.includes(geselecteerdAtoom))geselecteerdAtoom=null;
+  const aantalMoleculen=bepaalMoleculen(),moleculeTellingen=Array.from({length:aantalMoleculen},()=>({})),somX=Array(aantalMoleculen).fill(0),aantalPerMolecule=Array(aantalMoleculen).fill(0);
+  atomen.forEach(atoom=>{moleculeTellingen[atoom.componentNr][atoom.symbool]=(moleculeTellingen[atoom.componentNr][atoom.symbool]||0)+1;somX[atoom.componentNr]+=atoom.x;aantalPerMolecule[atoom.componentNr]++});
+  let infoHtml;
+  if(!atomen.length&&!gesplitstModus)infoHtml='<span class="hint">Nog niets op het werkveld.</span>';
+  else if(!gesplitstModus)infoHtml=chipsNaarHtml(vatSamen(moleculeTellingen)).replace('<div class="chips">','<div class="chips" style="margin-bottom:8px">');
   else{
-    const L=summarize(mol.filter((m,i)=>sx[i]/sn[i]<W/2)),R=summarize(mol.filter((m,i)=>sx[i]/sn[i]>=W/2));
-    const diffs=[...new Set([...Object.keys(L.tot),...Object.keys(R.tot)])].sort().filter(s=>(L.tot[s]||0)!==(R.tot[s]||0));
-    const bal=!L.n&&!R.n?'':!diffs.length?'<div class="bal ok">✓ Wet van Lavoisier: links en rechts evenveel atomen van elk element.</div>'
-      :`<div class="bal bad">✗ Niet in evenwicht: ${diffs.map(s=>`${s} ${L.tot[s]||0} ≠ ${R.tot[s]||0}`).join(' · ')}</div>`;
-    html=sideHtml('l','Reagentia',L)+sideHtml('r','Reactieproducten',R)+bal}
-  if(html!==lastInfo){$('info').innerHTML=html;lastInfo=html}
-  const size=sel?atoms.filter(a=>a.c===sel.c).length:0;
-  if(sel&&size>1){const m={};atoms.filter(a=>a.c===sel.c).forEach(a=>m[a.s]=(m[a.s]||0)+1);
-    $('selname').textContent=formula(m);$('sel').style.display='flex'}
-  else{sel=null;$('sel').style.display='none'}}
+    const linkerKant=vatSamen(moleculeTellingen.filter((moleculeTelling,moleculeNr)=>somX[moleculeNr]/aantalPerMolecule[moleculeNr]<breedte/2)),rechterKant=vatSamen(moleculeTellingen.filter((moleculeTelling,moleculeNr)=>somX[moleculeNr]/aantalPerMolecule[moleculeNr]>=breedte/2));
+    const verschillen=[...new Set([...Object.keys(linkerKant.totaalPerElement),...Object.keys(rechterKant.totaalPerElement)])].sort().filter(symbool=>(linkerKant.totaalPerElement[symbool]||0)!==(rechterKant.totaalPerElement[symbool]||0));
+    const balansHtml=!linkerKant.aantalAtomen&&!rechterKant.aantalAtomen?'':!verschillen.length?'<div class="bal ok">✓ Wet van Lavoisier: links en rechts evenveel atomen van elk element.</div>'
+      :`<div class="bal bad">✗ Niet in evenwicht: ${verschillen.map(symbool=>`${symbool} ${linkerKant.totaalPerElement[symbool]||0} ≠ ${rechterKant.totaalPerElement[symbool]||0}`).join(' · ')}</div>`;
+    infoHtml=zijdeNaarHtml('l','Reagentia',linkerKant)+zijdeNaarHtml('r','Reactieproducten',rechterKant)+balansHtml}
+  if(infoHtml!==laatsteInfoHtml){haalElement('info').innerHTML=infoHtml;laatsteInfoHtml=infoHtml}
+  const groepGrootte=geselecteerdAtoom?atomen.filter(atoom=>atoom.componentNr===geselecteerdAtoom.componentNr).length:0;
+  if(geselecteerdAtoom&&groepGrootte>1){const aantallen={};atomen.filter(atoom=>atoom.componentNr===geselecteerdAtoom.componentNr).forEach(atoom=>aantallen[atoom.symbool]=(aantallen[atoom.symbool]||0)+1);
+    haalElement('selname').textContent=bouwFormule(aantallen);haalElement('sel').style.display='flex'}
+  else{geselecteerdAtoom=null;haalElement('sel').style.display='none'}}
 
-// interaction
-const trashes=[$('trash'),$('trashL')];
-cv.addEventListener('contextmenu',e=>e.preventDefault());
-cv.addEventListener('pointerdown',e=>{
-  const p=pos(e);computeComps();
-  let hit=null;for(let i=atoms.length-1;i>=0;i--){const a=atoms[i];if(Math.hypot(a.x-p.x,a.y-p.y)<=a.r){hit=a;break}}
-  if(hit&&(e.ctrlKey||e.metaKey||copyMode)){
-    const src=atoms.filter(a=>a.c===hit.c),map=new Map();
-    src.forEach(a=>{a.keep=true;const n={id:nid++,s:a.s,x:a.x,y:a.y,r:a.r,c:-1,adj:[],used:0,pin:false,dup:true};map.set(a,n);atoms.push(n)});
-    bonds.filter(b=>map.has(b.a)).forEach(b=>bonds.push({a:map.get(b.a),b:map.get(b.b),o:b.o}));
-    hit=map.get(hit);computeComps()}
-  if(hit){
-    if(e.shiftKey&&!hit.dup){bonds=bonds.filter(b=>b.a!==hit&&b.b!==hit);computeComps();sel=null}
-    const set=atoms.filter(a=>a.c===hit.c);
-    atoms=atoms.filter(a=>!set.includes(a)).concat(set);
-    drag={atom:hit,set,ox:p.x-hit.x,oy:p.y-hit.y,moved:false,sx:e.clientX,sy:e.clientY};
-    updateInfo();return}
-  for(const b of bonds){
-    const ax=b.a.x,ay=b.a.y,dx=b.b.x-ax,dy=b.b.y-ay,l2=dx*dx+dy*dy||1;
-    let t=Math.max(0,Math.min(1,((p.x-ax)*dx+(p.y-ay)*dy)/l2));
-    if(Math.hypot(ax+dx*t-p.x,ay+dy*t-p.y)<(e.pointerType==='touch'?22:11)){
-      b.o=(b.o<3&&free(b.a)>0&&free(b.b)>0)?b.o+1:1;computeComps();updateInfo();return}}
-  sel=null;updateInfo()});
+// interactie
+const vuilbakken=[haalElement('trash'),haalElement('trashL')];
+canvas.addEventListener('contextmenu',gebeurtenis=>gebeurtenis.preventDefault());
+canvas.addEventListener('pointerdown',gebeurtenis=>{
+  const muisPositie=bepaalMuispositie(gebeurtenis);bepaalMoleculen();
+  let geraaktAtoom=null;for(let index=atomen.length-1;index>=0;index--){const atoom=atomen[index];if(Math.hypot(atoom.x-muisPositie.x,atoom.y-muisPositie.y)<=atoom.straalAtoom){geraaktAtoom=atoom;break}}
+  if(geraaktAtoom&&(gebeurtenis.ctrlKey||gebeurtenis.metaKey||kopieerModus)){
+    const bronAtomen=atomen.filter(atoom=>atoom.componentNr===geraaktAtoom.componentNr),kopieKaart=new Map();
+    bronAtomen.forEach(atoom=>{atoom.isOrigineel=true;const nieuwAtom={id:volgendeAtoomId++,symbool:atoom.symbool,x:atoom.x,y:atoom.y,straalAtoom:atoom.straalAtoom,componentNr:-1,buren:[],gebruikteValentie:0,vastgepind:false,isKopie:true};kopieKaart.set(atoom,nieuwAtom);atomen.push(nieuwAtom)});
+    bindingen.filter(binding=>kopieKaart.has(binding.atoomA)).forEach(binding=>bindingen.push({atoomA:kopieKaart.get(binding.atoomA),atoomB:kopieKaart.get(binding.atoomB),bindingsorde:binding.bindingsorde}));
+    geraaktAtoom=kopieKaart.get(geraaktAtoom);bepaalMoleculen()}
+  if(geraaktAtoom){
+    if(gebeurtenis.shiftKey&&!geraaktAtoom.isKopie){bindingen=bindingen.filter(binding=>binding.atoomA!==geraaktAtoom&&binding.atoomB!==geraaktAtoom);bepaalMoleculen();geselecteerdAtoom=null}
+    const moleculeAtomen=atomen.filter(atoom=>atoom.componentNr===geraaktAtoom.componentNr);
+    atomen=atomen.filter(atoom=>!moleculeAtomen.includes(atoom)).concat(moleculeAtomen);
+    sleepActie={atom:geraaktAtoom,moleculeAtomen:moleculeAtomen,grijpAfstandX:muisPositie.x-geraaktAtoom.x,grijpAfstandY:muisPositie.y-geraaktAtoom.y,verplaatst:false,startClientX:gebeurtenis.clientX,startClientY:gebeurtenis.clientY};
+    werkInfoBij();return}
+  for(const binding of bindingen){
+    const beginX=binding.atoomA.x,beginY=binding.atoomA.y,verschilX=binding.atoomB.x-beginX,verschilY=binding.atoomB.y-beginY,kwadraatLengte=verschilX*verschilX+verschilY*verschilY||1;
+    let aandeelOpLijn=Math.max(0,Math.min(1,((muisPositie.x-beginX)*verschilX+(muisPositie.y-beginY)*verschilY)/kwadraatLengte));
+    if(Math.hypot(beginX+verschilX*aandeelOpLijn-muisPositie.x,beginY+verschilY*aandeelOpLijn-muisPositie.y)<(gebeurtenis.pointerType==='touch'?22:11)){
+      binding.bindingsorde=(binding.bindingsorde<3&&vrijeValentie(binding.atoomA)>0&&vrijeValentie(binding.atoomB)>0)?binding.bindingsorde+1:1;bepaalMoleculen();werkInfoBij();return}}
+  geselecteerdAtoom=null;werkInfoBij()});
 
-addEventListener('pointermove',e=>{
-  if(!drag)return;const p=pos(e),a=drag.atom;
-  const nx=Math.min(W-a.r,Math.max(a.r,p.x-drag.ox)),ny=Math.min(H-a.r,Math.max(a.r,p.y-drag.oy));
-  if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>5)drag.moved=true;
-  const dx=nx-a.x,dy=ny-a.y;drag.set.forEach(s=>{s.x+=dx;s.y+=dy});
-  drag.over=false;
-  trashes.forEach(el=>{const t=el.getBoundingClientRect(),o=e.clientX>t.left&&e.clientX<t.right&&e.clientY>t.top&&e.clientY<t.bottom;el.classList.toggle('over',o);if(o)drag.over=true});
-  if(splitMode)updateInfo()});
+addEventListener('pointermove',gebeurtenis=>{
+  if(!sleepActie)return;const muisPositie=bepaalMuispositie(gebeurtenis),sleepAtoom=sleepActie.atom;
+  const nieuweX=Math.min(breedte-sleepAtoom.straalAtoom,Math.max(sleepAtoom.straalAtoom,muisPositie.x-sleepActie.grijpAfstandX)),nieuweY=Math.min(hoogte-sleepAtoom.straalAtoom,Math.max(sleepAtoom.straalAtoom,muisPositie.y-sleepActie.grijpAfstandY));
+  if(Math.hypot(gebeurtenis.clientX-sleepActie.startClientX,gebeurtenis.clientY-sleepActie.startClientY)>5)sleepActie.verplaatst=true;
+  const verschuivingX=nieuweX-sleepAtoom.x,verschuivingY=nieuweY-sleepAtoom.y;sleepActie.moleculeAtomen.forEach(positie=>{positie.x+=verschuivingX;positie.y+=verschuivingY});
+  sleepActie.bovenVuilbak=false;
+  vuilbakken.forEach(vuilbak=>{const vuilbakRechthoek=vuilbak.getBoundingClientRect(),isBoven=gebeurtenis.clientX>vuilbakRechthoek.left&&gebeurtenis.clientX<vuilbakRechthoek.right&&gebeurtenis.clientY>vuilbakRechthoek.top&&gebeurtenis.clientY<vuilbakRechthoek.bottom;vuilbak.classList.toggle('over',isBoven);if(isBoven)sleepActie.bovenVuilbak=true});
+  if(gesplitstModus)werkInfoBij()});
 
 addEventListener('pointerup',()=>{
-  if(!drag)return;const d=drag;drag=null;trashes.forEach(t=>t.classList.remove('over'));
-  atoms.forEach(a=>{a.keep=a.dup=false});
-  if(d.over&&d.moved){const s=new Set(d.set);atoms=atoms.filter(a=>!s.has(a));bonds=bonds.filter(b=>!s.has(b.a));if(sel&&s.has(sel))sel=null}
-  else if(!d.moved){computeComps();sel=d.set.length>1?d.atom:null}
-  else tryBond(d.set);
-  updateInfo()});
+  if(!sleepActie)return;const beeindigdeSleep=sleepActie;sleepActie=null;vuilbakken.forEach(vuilbak=>vuilbak.classList.remove('over'));
+  atomen.forEach(atoom=>{atoom.isOrigineel=atoom.isKopie=false});
+  if(beeindigdeSleep.bovenVuilbak&&beeindigdeSleep.verplaatst){const teVerwijderenAtomen=new Set(beeindigdeSleep.moleculeAtomen);atomen=atomen.filter(atoom=>!teVerwijderenAtomen.has(atoom));bindingen=bindingen.filter(binding=>!teVerwijderenAtomen.has(binding.atoomA));if(geselecteerdAtoom&&teVerwijderenAtomen.has(geselecteerdAtoom))geselecteerdAtoom=null}
+  else if(!beeindigdeSleep.verplaatst){bepaalMoleculen();geselecteerdAtoom=beeindigdeSleep.moleculeAtomen.length>1?beeindigdeSleep.atom:null}
+  else maakBindingen(beeindigdeSleep.moleculeAtomen);
+  werkInfoBij()});
 
-$('split').onclick=()=>{
-  if(!sel)return;computeComps();const c=sel.c,m=atoms.filter(a=>a.c===c);
-  bonds=bonds.filter(b=>b.a.c!==c);
-  const cx=m.reduce((s,a)=>s+a.x,0)/m.length,cy=m.reduce((s,a)=>s+a.y,0)/m.length;
-  m.forEach(a=>{const dx=a.x-cx,dy=a.y-cy,l=Math.hypot(dx,dy)||1;a.x+=dx/l*35;a.y+=dy/l*35});
-  sel=null;updateInfo()};
-const dlg=$('dlg');let dlgAct=null;
-const closeDlg=()=>{dlg.style.display='none';dlgAct=null};
-function showDlg(t,p,yes,act){$('dlgT').textContent=t;$('dlgP').textContent=p;$('dlgYes').textContent=yes;
-  $('dlgNo').style.display=act?'':'none';$('dlgYes').classList.toggle('danger',!!act);dlgAct=act||null;dlg.style.display='flex'}
-const clearAll=()=>{atoms=[];bonds=[];sel=null;drag=null;updateInfo()};
-trashes.forEach(t=>t.addEventListener('click',()=>{if(atoms.length)showDlg('Alles wissen?','Alle atomen en moleculen op het werkveld worden verwijderd.','Ja, wis alles',clearAll)}));
-$('dlgNo').onclick=closeDlg;dlg.onclick=e=>{if(e.target===dlg)closeDlg()};
-$('dlgYes').onclick=()=>{const f=dlgAct;closeDlg();if(f)f()};
+haalElement('split').onclick=()=>{
+  if(!geselecteerdAtoom)return;bepaalMoleculen();const moleculeNr=geselecteerdAtoom.componentNr,moleculeAtomen=atomen.filter(atoom=>atoom.componentNr===moleculeNr);
+  bindingen=bindingen.filter(binding=>binding.atoomA.componentNr!==moleculeNr);
+  const zwaartepuntX=moleculeAtomen.reduce((som,positie)=>som+positie.x,0)/moleculeAtomen.length,zwaartepuntY=moleculeAtomen.reduce((som,positie)=>som+positie.y,0)/moleculeAtomen.length;
+  moleculeAtomen.forEach(positie=>{const verschilX=positie.x-zwaartepuntX,verschilY=positie.y-zwaartepuntY,lengte=Math.hypot(verschilX,verschilY)||1;positie.x+=verschilX/lengte*35;positie.y+=verschilY/lengte*35});
+  geselecteerdAtoom=null;werkInfoBij()};
+const dialoog=haalElement('dlg');let dialoogActie=null;
+const sluitDialoog=()=>{dialoog.style.display='none';dialoogActie=null};
+function toonDialoog(titel,tekst,jaTekst,actie){haalElement('dlgT').textContent=titel;haalElement('dlgP').textContent=tekst;haalElement('dlgYes').textContent=jaTekst;
+  haalElement('dlgNo').style.display=actie?'':'none';haalElement('dlgYes').classList.toggle('danger',!!actie);dialoogActie=actie||null;dialoog.style.display='flex'}
+const wisAlles=()=>{atomen=[];bindingen=[];geselecteerdAtoom=null;sleepActie=null;werkInfoBij()};
+vuilbakken.forEach(vuilbak=>vuilbak.addEventListener('click',()=>{if(atomen.length)toonDialoog('Alles wissen?','Alle atomen en moleculen op het werkveld worden verwijderd.','Ja, wis alles',wisAlles)}));
+haalElement('dlgNo').onclick=sluitDialoog;dialoog.onclick=gebeurtenis=>{if(gebeurtenis.target===dialoog)sluitDialoog()};
+haalElement('dlgYes').onclick=()=>{const actie=dialoogActie;sluitDialoog();if(actie)actie()};
 
 // opslaan / openen (.mlbr = JSON; posities als fractie van breedte/hoogte)
-function saveField(){
-  if(!atoms.length)return showDlg('Niets om op te slaan','Er staat nog niets op het werkveld.','OK');
-  const idx=new Map(atoms.map((a,i)=>[a,i])),r4=v=>Math.round(v*1e4)/1e4;
-  const data={app:'moleculenbouwer',versie:1,splits:splitMode,
-    atomen:atoms.map(a=>({e:a.s,x:r4(a.x/W),y:r4(a.y/H)})),
-    bindingen:bonds.map(b=>[idx.get(b.a),idx.get(b.b),b.o])};
-  const d=new Date(),p=n=>String(n).padStart(2,'0');
-  saveBlob(JSON.stringify(data),`moleculenbouwer-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.mlbr`)}
-async function saveBlob(data,name,mime='application/json',ext='.mlbr',desc='Moleculenbouwer-werkveld'){
+function slaWerkveldOp(){
+  if(!atomen.length)return toonDialoog('Niets om op te slaan','Er staat nog niets op het werkveld.','OK');
+  const indexPerAtoom=new Map(atomen.map((atoom,index)=>[atoom,index])),rondAfOpVierDecimalen=waarde=>Math.round(waarde*1e4)/1e4;
+  const werkveldData={app:'moleculenbouwer',versie:1,splits:gesplitstModus,
+    atomen:atomen.map(atoom=>({e:atoom.symbool,x:rondAfOpVierDecimalen(atoom.x/breedte),y:rondAfOpVierDecimalen(atoom.y/hoogte)})),
+    bindingen:bindingen.map(binding=>[indexPerAtoom.get(binding.atoomA),indexPerAtoom.get(binding.atoomB),binding.bindingsorde])};
+  const nu=new Date(),tweeCijfers=getal=>String(getal).padStart(2,'0');
+  slaBestandOp(JSON.stringify(werkveldData),`moleculenbouwer-${nu.getFullYear()}${tweeCijfers(nu.getMonth()+1)}${tweeCijfers(nu.getDate())}-${tweeCijfers(nu.getHours())}${tweeCijfers(nu.getMinutes())}.mlbr`)}
+async function slaBestandOp(inhoud,bestandsnaam,mimeType='application/json',extensie='.mlbr',beschrijving='Moleculenbouwer-werkveld'){
   if(window.showSaveFilePicker){
-    try{const h=await showSaveFilePicker({suggestedName:name,types:[{description:desc,accept:{[mime]:[ext]}}]});
-      const w=await h.createWritable();await w.write(data);await w.close();return}
-    catch(err){if(err&&err.name==='AbortError')return}}
-  const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data],{type:mime})),a=document.createElement('a');
-  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function parseField(d){
-  const bad=m=>{throw new Error(m)};
-  if(!d||typeof d!=='object'||d.app!=='moleculenbouwer')bad('Dit is geen Moleculenbouwer-bestand.');
-  if(!Number.isInteger(d.versie)||d.versie<1)bad('Het versienummer in het bestand klopt niet.');
-  if(d.versie>1)bad('Dit bestand komt uit een nieuwere versie van de Moleculenbouwer.');
-  if(!Array.isArray(d.atomen)||d.atomen.length>500)bad('De lijst met atomen ontbreekt of is te lang.');
-  if(!Array.isArray(d.bindingen)||d.bindingen.length>1000)bad('De lijst met bindingen ontbreekt of is te lang.');
-  const used=Array(d.atomen.length).fill(0),seen=new Set();
-  const at=d.atomen.map((a,i)=>{
-    if(!a||typeof a.e!=='string'||!Object.prototype.hasOwnProperty.call(EL,a.e))bad(`Atoom ${i+1}: onbekend element.`);
-    if(!Number.isFinite(a.x)||!Number.isFinite(a.y))bad(`Atoom ${i+1}: ongeldige positie.`);
-    return{e:a.e,x:Math.min(1,Math.max(0,a.x)),y:Math.min(1,Math.max(0,a.y))}});
-  const bo=d.bindingen.map((b,k)=>{
-    if(!Array.isArray(b)||b.length!==3)bad(`Binding ${k+1}: ongeldig.`);
-    const[i,j,o]=b;
-    if(!Number.isInteger(i)||!Number.isInteger(j)||i<0||j<0||i>=at.length||j>=at.length||i===j)bad(`Binding ${k+1}: verwijst naar een atoom dat niet bestaat.`);
-    if(![1,2,3].includes(o))bad(`Binding ${k+1}: ongeldige bindingsorde.`);
-    const key=Math.min(i,j)+'-'+Math.max(i,j);
-    if(seen.has(key))bad(`Binding ${k+1}: komt dubbel voor.`);
-    seen.add(key);used[i]+=o;used[j]+=o;return[i,j,o]});
-  used.forEach((u,i)=>{if(u>EL[at[i].e].v)bad(`Atoom ${i+1} (${at[i].e}) heeft te veel bindingen.`)});
-  return{split:d.splits===true,atoms:at,bonds:bo}}
-function applyField(d){
-  atoms=[];bonds=[];sel=null;drag=null;
-  d.atoms.forEach(a=>{const r=EL[a.e].r;newAtom(a.e,Math.min(W-r,Math.max(r,a.x*W)),Math.min(H-r,Math.max(r,a.y*H)))});
-  d.bonds.forEach(([i,j,o])=>bonds.push({a:atoms[i],b:atoms[j],o}));
-  splitMode=d.split;$('mode').setAttribute('aria-checked',splitMode);lastInfo='';updateInfo()}
-function loadFile(f){
-  if(!f)return;
-  if(f.size>1e6)return showDlg('Bestand te groot','Dit bestand is te groot om een werkveld te zijn.','OK');
-  f.text().then(t=>{
-    let d;try{d=parseField(JSON.parse(t))}
-    catch(err){return showDlg('Kan bestand niet openen',err instanceof SyntaxError?'Dit is geen geldig Moleculenbouwer-bestand.':err.message,'OK')}
-    if(atoms.length)showDlg('Werkveld vervangen?','Het huidige werkveld wordt vervangen door het bestand. Niet-opgeslagen werk gaat verloren.','Ja, vervang',()=>applyField(d));
-    else applyField(d)
-  }).catch(()=>showDlg('Kan bestand niet openen','Het bestand kon niet gelezen worden.','OK'))}
+    try{const bestandsHandle=await showSaveFilePicker({suggestedName:bestandsnaam,types:[{description:beschrijving,accept:{[mimeType]:[extensie]}}]});
+      const schrijver=await bestandsHandle.createWritable();await schrijver.write(inhoud);await schrijver.close();return}
+    catch(fout){if(fout&&fout.name==='AbortError')return}}
+  const objectUrl=URL.createObjectURL(inhoud instanceof Blob?inhoud:new Blob([inhoud],{type:mimeType})),downloadLink=document.createElement('a');
+  downloadLink.href=objectUrl;downloadLink.download=bestandsnaam;document.body.appendChild(downloadLink);downloadLink.click();downloadLink.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000)}
+function valideerWerkveld(bestandsData){
+  const meldFout=melding=>{throw new Error(melding)};
+  if(!bestandsData||typeof bestandsData!=='object'||bestandsData.app!=='moleculenbouwer')meldFout('Dit is geen Moleculenbouwer-bestand.');
+  if(!Number.isInteger(bestandsData.versie)||bestandsData.versie<1)meldFout('Het versienummer in het bestand klopt niet.');
+  if(bestandsData.versie>1)meldFout('Dit bestand komt uit een nieuwere versie van de Moleculenbouwer.');
+  if(!Array.isArray(bestandsData.atomen)||bestandsData.atomen.length>500)meldFout('De lijst met atomen ontbreekt of is te lang.');
+  if(!Array.isArray(bestandsData.bindingen)||bestandsData.bindingen.length>1000)meldFout('De lijst met bindingen ontbreekt of is te lang.');
+  const gebruikteValentiePerAtoom=Array(bestandsData.atomen.length).fill(0),geziendeParen=new Set();
+  const geldigeAtomen=bestandsData.atomen.map((atoomData,index)=>{
+    if(!atoomData||typeof atoomData.e!=='string'||!Object.prototype.hasOwnProperty.call(ELEMENTEN,atoomData.e))meldFout(`Atoom ${index+1}: onbekend element.`);
+    if(!Number.isFinite(atoomData.x)||!Number.isFinite(atoomData.y))meldFout(`Atoom ${index+1}: ongeldige positie.`);
+    return{e:atoomData.e,x:Math.min(1,Math.max(0,atoomData.x)),y:Math.min(1,Math.max(0,atoomData.y))}});
+  const geldigeBindingen=bestandsData.bindingen.map((bindingData,index)=>{
+    if(!Array.isArray(bindingData)||bindingData.length!==3)meldFout(`Binding ${index+1}: ongeldig.`);
+    const[indexA,indexB,bindingsorde]=bindingData;
+    if(!Number.isInteger(indexA)||!Number.isInteger(indexB)||indexA<0||indexB<0||indexA>=geldigeAtomen.length||indexB>=geldigeAtomen.length||indexA===indexB)meldFout(`Binding ${index+1}: verwijst naar een atoom dat niet bestaat.`);
+    if(![1,2,3].includes(bindingsorde))meldFout(`Binding ${index+1}: ongeldige bindingsorde.`);
+    const parSleutel=Math.min(indexA,indexB)+'-'+Math.max(indexA,indexB);
+    if(geziendeParen.has(parSleutel))meldFout(`Binding ${index+1}: komt dubbel voor.`);
+    geziendeParen.add(parSleutel);gebruikteValentiePerAtoom[indexA]+=bindingsorde;gebruikteValentiePerAtoom[indexB]+=bindingsorde;return[indexA,indexB,bindingsorde]});
+  gebruikteValentiePerAtoom.forEach((gebruikt,index)=>{if(gebruikt>ELEMENTEN[geldigeAtomen[index].e].valentieAtoom)meldFout(`Atoom ${index+1} (${geldigeAtomen[index].e}) heeft te veel bindingen.`)});
+  return{split:bestandsData.splits===true,atoms:geldigeAtomen,bonds:geldigeBindingen}}
+function laadWerkveld(bestandsData){
+  atomen=[];bindingen=[];geselecteerdAtoom=null;sleepActie=null;
+  bestandsData.atoms.forEach(atoomData=>{const straal=ELEMENTEN[atoomData.e].straalAtoom;maakAtoom(atoomData.e,Math.min(breedte-straal,Math.max(straal,atoomData.x*breedte)),Math.min(hoogte-straal,Math.max(straal,atoomData.y*hoogte)))});
+  bestandsData.bonds.forEach(([indexA,indexB,bindingsorde])=>bindingen.push({atoomA:atomen[indexA],atoomB:atomen[indexB],bindingsorde:bindingsorde}));
+  gesplitstModus=bestandsData.split;haalElement('mode').setAttribute('aria-checked',gesplitstModus);laatsteInfoHtml='';werkInfoBij()}
+function leesBestand(bestand){
+  if(!bestand)return;
+  if(bestand.size>1e6)return toonDialoog('Bestand te groot','Dit bestand is te groot om een werkveld te zijn.','OK');
+  bestand.text().then(tekst=>{
+    let werkveldData;try{werkveldData=valideerWerkveld(JSON.parse(tekst))}
+    catch(fout){return toonDialoog('Kan bestand niet openen',fout instanceof SyntaxError?'Dit is geen geldig Moleculenbouwer-bestand.':fout.message,'OK')}
+    if(atomen.length)toonDialoog('Werkveld vervangen?','Het huidige werkveld wordt vervangen door het bestand. Niet-opgeslagen werk gaat verloren.','Ja, vervang',()=>laadWerkveld(werkveldData));
+    else laadWerkveld(werkveldData)
+  }).catch(()=>toonDialoog('Kan bestand niet openen','Het bestand kon niet gelezen worden.','OK'))}
 // ===ORDENEN===
 // Molecule netjes uitleggen: VSEPR-hoeken (2D-conventie), ringen als regelmatige veelhoeken,
 // hoofdbinding op een veelvoud van 15°. Geeft true, of een tekst met de reden van falen.
-const VE={H:1,C:4,N:5,O:6,F:7,P:5,S:6,Cl:7,Br:7};
-function ordenen(c){
-  computeComps();
-  const A=atoms.filter(a=>a.c===c);if(A.length<2)return 'klein';
-  const AS=new Set(A),nb=new Map(A.map(a=>[a,[]]));
-  bonds.filter(b=>AS.has(b.a)).forEach(b=>{nb.get(b.a).push({a:b.b,o:b.o});nb.get(b.b).push({a:b.a,o:b.o})});
-  const lp=a=>a.s==='C'||a.s==='H'?0:Math.max(0,Math.floor((VE[a.s]-nb.get(a).reduce((t,e)=>t+e.o,0))/2));
-  const bent=a=>{const sn=2+lp(a);return sn<=2?Math.PI:sn===3?2*Math.PI/3:sn===4?105*Math.PI/180:Math.PI/2};
-  const len=(a,b,o)=>a.r+b.r+16-(o-1)*4;
+const VALENTIE_ELEKTRONEN={H:1,C:4,N:5,O:6,F:7,P:5,S:6,Cl:7,Br:7};
+function ordenMolecule(moleculeNr){
+  bepaalMoleculen();
+  const moleculeAtomen=atomen.filter(atoom=>atoom.componentNr===moleculeNr);if(moleculeAtomen.length<2)return 'klein';
+  const moleculeAtomenSet=new Set(moleculeAtomen),buurLijst=new Map(moleculeAtomen.map(atoom=>[atoom,[]]));
+  bindingen.filter(binding=>moleculeAtomenSet.has(binding.atoomA)).forEach(binding=>{buurLijst.get(binding.atoomA).push({atoom:binding.atoomB,bindingsorde:binding.bindingsorde});buurLijst.get(binding.atoomB).push({atoom:binding.atoomA,bindingsorde:binding.bindingsorde})});
+  const aantalVrijeElektronenparen=atoom=>atoom.symbool==='C'||atoom.symbool==='H'?0:Math.max(0,Math.floor((VALENTIE_ELEKTRONEN[atoom.symbool]-buurLijst.get(atoom).reduce((som,verbinding)=>som+verbinding.bindingsorde,0))/2));
+  const gebogenHoek=atoom=>{const stericGetal=2+aantalVrijeElektronenparen(atoom);return stericGetal<=2?Math.PI:stericGetal===3?2*Math.PI/3:stericGetal===4?105*Math.PI/180:Math.PI/2};
+  const bindingslengte=(atoom,tweedeAtoom,bindingsorde)=>atoom.straalAtoom+tweedeAtoom.straalAtoom+16-(bindingsorde-1)*4;
   // ringen via DFS
-  const par=new Map([[A[0],null]]),dep=new Map([[A[0],0]]),rings=[],inRing=new Map();
-  (function dfs(u){for(const{a:v}of nb.get(u)){
-    if(!dep.has(v)){par.set(v,u);dep.set(v,dep.get(u)+1);dfs(v)}
-    else if(v!==par.get(u)&&dep.get(v)<dep.get(u)){const r=[];for(let x=u;x!==v;x=par.get(x))r.push(x);r.push(v);rings.push(r)}}})(A[0]);
-  for(const r of rings)for(const a of r){if(inRing.has(a))return 'fused';inRing.set(a,r)}
-  const pos=new Map();let refB=null,log=[],ov=new Map();
-  const P=(a,b,ang,o)=>{const L=len(a,b,o),q=pos.get(a);return{x:q.x+L*Math.cos(ang),y:q.y+L*Math.sin(ang)}};
-  const size=(x0,from)=>{const seen=new Set([from,x0]),st=[x0];while(st.length){const x=st.pop();for(const e of nb.get(x))if(!seen.has(e.a)){seen.add(e.a);st.push(e.a)}}return seen.size-1};
-  const pen=(a,p,q,qp)=>{const d=Math.hypot(p.x-qp.x,p.y-qp.y),th=a.r+q.r+18;return(d<th?(th-d)**2:0)+(d<110?(110-d)**2*.05:0)};
-  const pick=(a,kids,opts)=>{let bi=0,bs=1e18;
-    if(ov.has(a)&&ov.get(a)<opts.length)bi=ov.get(a);
-    else opts.forEach((o,oi)=>{const cs=kids.map((e,i)=>({a:e.a,p:P(a,e.a,o[i],e.o)}));let t=0;
-      cs.forEach((x,i)=>{for(const[q,qp]of pos)if(q!==a)t+=pen(x.a,x.p,q,qp);for(let j=i+1;j<cs.length;j++)t+=pen(x.a,x.p,cs[j].a,cs[j].p)});
-      if(t<bs-1e-9){bs=t;bi=oi}});
-    log.push([a,opts.length,bi]);return opts[bi]};
-  const bySize=(a,kids)=>kids.sort((x,y)=>size(y.a,a)-size(x.a,a));
-  const settle=(a,kids,best)=>{kids.forEach((e,i)=>pos.set(e.a,P(a,e.a,best[i],e.o)));
-    kids.forEach((e,i)=>inRing.has(e.a)?ring(inRing.get(e.a),e.a,best[i],false):expand(e.a,best[i],a))};
-  function expand(a,inDir,parent){
-    const kids=nb.get(a).filter(e=>e.a!==parent&&!pos.has(e.a));
-    if(!kids.length)return;
-    bySize(a,kids);
-    const n=kids.length+(parent?1:0),st=2*Math.PI/n;let opts;
-    if(!parent){
-      if(!refB)refB=[a,kids[0].a];
-      if(n===1)opts=[[0]];
-      else if(n===2){const g=bent(a);opts=[[0,g],[0,-g]]}
-      else opts=[kids.map((_,i)=>i*st),kids.map((_,i)=>-i*st)];
+  const ouderInBoom=new Map([[moleculeAtomen[0],null]]),diepte=new Map([[moleculeAtomen[0],0]]),ringen=[],ringVanAtoom=new Map();
+  (function dfs(huidigAtoom){for(const{atoom:buurAtoom}of buurLijst.get(huidigAtoom)){
+    if(!diepte.has(buurAtoom)){ouderInBoom.set(buurAtoom,huidigAtoom);diepte.set(buurAtoom,diepte.get(huidigAtoom)+1);dfs(buurAtoom)}
+    else if(buurAtoom!==ouderInBoom.get(huidigAtoom)&&diepte.get(buurAtoom)<diepte.get(huidigAtoom)){const gevondenRing=[];for(let ringAtoom=huidigAtoom;ringAtoom!==buurAtoom;ringAtoom=ouderInBoom.get(ringAtoom))gevondenRing.push(ringAtoom);gevondenRing.push(buurAtoom);ringen.push(gevondenRing)}}})(moleculeAtomen[0]);
+  for(const ring of ringen)for(const atoom of ring){if(ringVanAtoom.has(atoom))return 'fused';ringVanAtoom.set(atoom,ring)}
+  const posities=new Map();let referentieBinding=null,keuzeLogboek=[],gekozenOpties=new Map();
+  const berekenPositie=(vanAtoom,naarAtoom,hoek,bindingsorde)=>{const lengte=bindingslengte(vanAtoom,naarAtoom,bindingsorde),beginPositie=posities.get(vanAtoom);return{x:beginPositie.x+lengte*Math.cos(hoek),y:beginPositie.y+lengte*Math.sin(hoek)}};
+  const deelgrootte=(startAtoom,vanafAtoom)=>{const bezocht=new Set([vanafAtoom,startAtoom]),stapel=[startAtoom];while(stapel.length){const huidigAtoom=stapel.pop();for(const verbinding of buurLijst.get(huidigAtoom))if(!bezocht.has(verbinding.atoom)){bezocht.add(verbinding.atoom);stapel.push(verbinding.atoom)}}return bezocht.size-1};
+  const overlapStraf=(atoom,positie,anderAtoom,anderePositie)=>{const afstand=Math.hypot(positie.x-anderePositie.x,positie.y-anderePositie.y),drempel=atoom.straalAtoom+anderAtoom.straalAtoom+18;return(afstand<drempel?(drempel-afstand)**2:0)+(afstand<110?(110-afstand)**2*.05:0)};
+  const kiesOpstelling=(atoom,kinderen,opties)=>{let besteIndex=0,besteScore=1e18;
+    if(gekozenOpties.has(atoom)&&gekozenOpties.get(atoom)<opties.length)besteIndex=gekozenOpties.get(atoom);
+    else opties.forEach((optie,optieIndex)=>{const kandidaten=kinderen.map((verbinding,index)=>({atoom:verbinding.atoom,positie:berekenPositie(atoom,verbinding.atoom,optie[index],verbinding.bindingsorde)}));let score=0;
+      kandidaten.forEach((kandidaat,index)=>{for(const[anderAtoom,anderePositie]of posities)if(anderAtoom!==atoom)score+=overlapStraf(kandidaat.atoom,kandidaat.positie,anderAtoom,anderePositie);for(let tweedeIndex=index+1;tweedeIndex<kandidaten.length;tweedeIndex++)score+=overlapStraf(kandidaat.atoom,kandidaat.positie,kandidaten[tweedeIndex].atoom,kandidaten[tweedeIndex].positie)});
+      if(score<besteScore-1e-9){besteScore=score;besteIndex=optieIndex}});
+    keuzeLogboek.push([atoom,opties.length,besteIndex]);return opties[besteIndex]};
+  const sorteerOpGrootte=(atoom,kinderen)=>kinderen.sort((verbinding,tweedeVerbinding)=>deelgrootte(tweedeVerbinding.atoom,atoom)-deelgrootte(verbinding.atoom,atoom));
+  const plaatsKinderen=(atoom,kinderen,gekozenHoeken)=>{kinderen.forEach((verbinding,index)=>posities.set(verbinding.atoom,berekenPositie(atoom,verbinding.atoom,gekozenHoeken[index],verbinding.bindingsorde)));
+    kinderen.forEach((verbinding,index)=>ringVanAtoom.has(verbinding.atoom)?plaatsRing(ringVanAtoom.get(verbinding.atoom),verbinding.atoom,gekozenHoeken[index],false):leggUit(verbinding.atoom,gekozenHoeken[index],atoom))};
+  function leggUit(atoom,inkomendeRichting,ouder){
+    const kinderen=buurLijst.get(atoom).filter(verbinding=>verbinding.atoom!==ouder&&!posities.has(verbinding.atoom));
+    if(!kinderen.length)return;
+    sorteerOpGrootte(atoom,kinderen);
+    const aantalPartners=kinderen.length+(ouder?1:0),hoekStap=2*Math.PI/aantalPartners;let opties;
+    if(!ouder){
+      if(!referentieBinding)referentieBinding=[atoom,kinderen[0].atoom];
+      if(aantalPartners===1)opties=[[0]];
+      else if(aantalPartners===2){const gebogenHoekWaarde=gebogenHoek(atoom);opties=[[0,gebogenHoekWaarde],[0,-gebogenHoekWaarde]]}
+      else opties=[kinderen.map((ongebruikt,index)=>index*hoekStap),kinderen.map((ongebruikt,index)=>-index*hoekStap)];
     }else{
-      const tp=inDir+Math.PI;
-      if(n===2){const g=bent(a);opts=[[tp+g],[tp-g]]}
-      else if(n===4)opts=[[2,1,3],[2,3,1],[1,2,3],[3,2,1],[1,3,2],[3,1,2]].map(sl=>sl.map(k=>tp+k*st));
-      else{const sl=kids.map((_,i)=>i+1);opts=[sl.map(k=>tp+k*st),sl.map(k=>tp-k*st)]}}
-    settle(a,kids,pick(a,kids,opts))}
-  function ring(r0,attach,inDir,isRoot){
-    const n=r0.length,i0=r0.indexOf(attach),r=r0.slice(i0).concat(r0.slice(0,i0));
-    let sd=0;for(let k=0;k<n;k++){const a=r[k],b=r[(k+1)%n];sd+=len(a,b,nb.get(a).find(e=>e.a===b).o)}
-    sd/=n;const R=sd/(2*Math.sin(Math.PI/n)),a0=isRoot?-Math.PI/2:inDir+Math.PI;
-    const ctr=isRoot?{x:0,y:0}:{x:pos.get(attach).x+R*Math.cos(inDir),y:pos.get(attach).y+R*Math.sin(inDir)};
-    const ang=r.map((a,k)=>a0+k*2*Math.PI/n);
-    r.forEach((a,k)=>pos.set(a,{x:ctr.x+R*Math.cos(ang[k]),y:ctr.y+R*Math.sin(ang[k])}));
-    if(isRoot)refB=[r[0],r[1]];
-    r.forEach((a,k)=>{
-      const ex=nb.get(a).filter(e=>!r.includes(e.a)&&!pos.has(e.a));if(!ex.length)return;
-      bySize(a,ex);const m=ex.length,t=ang[k];
-      let offs=(a===attach&&!isRoot)?[60,-60,120,-120].slice(0,m):m===1?[0]:m===2?[-40,40]:Array.from({length:m},(_,i)=>(i-(m-1)/2)*60);
-      offs=offs.map(d=>d*Math.PI/180);
-      settle(a,ex,pick(a,ex,[offs.map(d=>t+d),offs.map(d=>t-d)]))})}
-  const root=A.reduce((m,a)=>nb.get(a).length>nb.get(m).length?a:m,A[0]);
-  const build=()=>{pos.clear();refB=null;log=[];
-    if(rings.length)ring(rings[0],rings[0][0],0,true);else{pos.set(root,{x:0,y:0});expand(root,null,null)}};
-  const bonded=(a,b)=>nb.get(a).some(e=>e.a===b);
-  const gs=()=>{let t=0;for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++)if(!bonded(A[i],A[j]))t+=pen(A[i],pos.get(A[i]),A[j],pos.get(A[j]));return t+20*hs()};
-  build();
-  if(pos.size!==A.length)return 'fout';
-  const hs=()=>{let t=0;for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++){const a=A[i],b=A[j];if(bonded(a,b))continue;const p=pos.get(a),q=pos.get(b),d=Math.hypot(p.x-q.x,p.y-q.y),th=a.r+b.r+18;if(d<th)t+=(th-d)**2}return t};
-  let cur=gs();
-  if(hs()>0){ // drukke molecule: willekeurige combinaties van keuzes proberen
-    const base=log.slice(),t0=Date.now();let bestOv=ov,bestS=cur;
-    for(let n=0;n<400&&Date.now()-t0<400;n++){
-      ov=new Map(base.map(([a,k])=>[a,Math.floor(Math.random()*k)]));build();
-      if(pos.size!==A.length)continue;const sc=gs();if(sc<bestS){bestS=sc;bestOv=ov}}
-    ov=bestOv;build();cur=gs()}
+      const richtingNaarOuder=inkomendeRichting+Math.PI;
+      if(aantalPartners===2){const gebogenHoekWaarde=gebogenHoek(atoom);opties=[[richtingNaarOuder+gebogenHoekWaarde],[richtingNaarOuder-gebogenHoekWaarde]]}
+      else if(aantalPartners===4)opties=[[2,1,3],[2,3,1],[1,2,3],[3,2,1],[1,3,2],[3,1,2]].map(slotVolgorde=>slotVolgorde.map(slotNr=>richtingNaarOuder+slotNr*hoekStap));
+      else{const slotVolgorde=kinderen.map((ongebruikt,index)=>index+1);opties=[slotVolgorde.map(slotNr=>richtingNaarOuder+slotNr*hoekStap),slotVolgorde.map(slotNr=>richtingNaarOuder-slotNr*hoekStap)]}}
+    plaatsKinderen(atoom,kinderen,kiesOpstelling(atoom,kinderen,opties))}
+  function plaatsRing(ringAtomen,aansluitAtoom,inkomendeRichting,isStartRing){
+    const ringGrootte=ringAtomen.length,startIndex=ringAtomen.indexOf(aansluitAtoom),geordendeRing=ringAtomen.slice(startIndex).concat(ringAtomen.slice(0,startIndex));
+    let zijdeLengte=0;for(let index=0;index<ringGrootte;index++){const atoom=geordendeRing[index],volgendAtoom=geordendeRing[(index+1)%ringGrootte];zijdeLengte+=bindingslengte(atoom,volgendAtoom,buurLijst.get(atoom).find(verbinding=>verbinding.atoom===volgendAtoom).bindingsorde)}
+    zijdeLengte/=ringGrootte;const ringStraal=zijdeLengte/(2*Math.sin(Math.PI/ringGrootte)),beginHoek=isStartRing?-Math.PI/2:inkomendeRichting+Math.PI;
+    const middelpunt=isStartRing?{x:0,y:0}:{x:posities.get(aansluitAtoom).x+ringStraal*Math.cos(inkomendeRichting),y:posities.get(aansluitAtoom).y+ringStraal*Math.sin(inkomendeRichting)};
+    const hoeken=geordendeRing.map((atoom,index)=>beginHoek+index*2*Math.PI/ringGrootte);
+    geordendeRing.forEach((atoom,index)=>posities.set(atoom,{x:middelpunt.x+ringStraal*Math.cos(hoeken[index]),y:middelpunt.y+ringStraal*Math.sin(hoeken[index])}));
+    if(isStartRing)referentieBinding=[geordendeRing[0],geordendeRing[1]];
+    geordendeRing.forEach((atoom,index)=>{
+      const exocyclischeBuren=buurLijst.get(atoom).filter(verbinding=>!geordendeRing.includes(verbinding.atoom)&&!posities.has(verbinding.atoom));if(!exocyclischeBuren.length)return;
+      sorteerOpGrootte(atoom,exocyclischeBuren);const aantalBuren=exocyclischeBuren.length,radialeHoek=hoeken[index];
+      let hoekverschuivingen=(atoom===aansluitAtoom&&!isStartRing)?[60,-60,120,-120].slice(0,aantalBuren):aantalBuren===1?[0]:aantalBuren===2?[-40,40]:Array.from({length:aantalBuren},(ongebruikt,index)=>(index-(aantalBuren-1)/2)*60);
+      hoekverschuivingen=hoekverschuivingen.map(graden=>graden*Math.PI/180);
+      plaatsKinderen(atoom,exocyclischeBuren,kiesOpstelling(atoom,exocyclischeBuren,[hoekverschuivingen.map(graden=>radialeHoek+graden),hoekverschuivingen.map(graden=>radialeHoek-graden)]))})}
+  const wortelAtoom=moleculeAtomen.reduce((aantal,atoom)=>buurLijst.get(atoom).length>buurLijst.get(aantal).length?atoom:aantal,moleculeAtomen[0]);
+  const bouwOpstelling=()=>{posities.clear();referentieBinding=null;keuzeLogboek=[];
+    if(ringen.length)plaatsRing(ringen[0],ringen[0][0],0,true);else{posities.set(wortelAtoom,{x:0,y:0});leggUit(wortelAtoom,null,null)}};
+  const zijnGebonden=(atoom,anderAtoom)=>buurLijst.get(atoom).some(verbinding=>verbinding.atoom===anderAtoom);
+  const totaleScore=()=>{let som=0;for(let indexA=0;indexA<moleculeAtomen.length;indexA++)for(let indexB=indexA+1;indexB<moleculeAtomen.length;indexB++)if(!zijnGebonden(moleculeAtomen[indexA],moleculeAtomen[indexB]))som+=overlapStraf(moleculeAtomen[indexA],posities.get(moleculeAtomen[indexA]),moleculeAtomen[indexB],posities.get(moleculeAtomen[indexB]));return som+20*hardeOverlap()};
+  bouwOpstelling();
+  if(posities.size!==moleculeAtomen.length)return 'fout';
+  const hardeOverlap=()=>{let som=0;for(let indexA=0;indexA<moleculeAtomen.length;indexA++)for(let indexB=indexA+1;indexB<moleculeAtomen.length;indexB++){const atoom=moleculeAtomen[indexA],anderAtoom=moleculeAtomen[indexB];if(zijnGebonden(atoom,anderAtoom))continue;const positie=posities.get(atoom),anderePositie=posities.get(anderAtoom),afstand=Math.hypot(positie.x-anderePositie.x,positie.y-anderePositie.y),drempel=atoom.straalAtoom+anderAtoom.straalAtoom+18;if(afstand<drempel)som+=(drempel-afstand)**2}return som};
+  let huidigeScore=totaleScore();
+  if(hardeOverlap()>0){ // drukke molecule: willekeurige combinaties van keuzes proberen
+    const basisKeuzes=keuzeLogboek.slice(),starttijd=Date.now();let besteKeuzes=gekozenOpties,besteScore=huidigeScore;
+    for(let poging=0;poging<400&&Date.now()-starttijd<400;poging++){
+      gekozenOpties=new Map(basisKeuzes.map(([atoom,aantalOpties])=>[atoom,Math.floor(Math.random()*aantalOpties)]));bouwOpstelling();
+      if(posities.size!==moleculeAtomen.length)continue;const score=totaleScore();if(score<besteScore){besteScore=score;besteKeuzes=gekozenOpties}}
+    gekozenOpties=besteKeuzes;bouwOpstelling();huidigeScore=totaleScore()}
   // per keuze alternatieven proberen en het beste houden
-  for(let it=0;it<30&&cur>1;it++){
-    let imp=false;
-    for(const[a,k,ch]of log.slice()){
-      for(let i=0;i<k&&!imp;i++){if(i===ch)continue;
-        const o0=ov;ov=new Map(ov);ov.set(a,i);build();const sc=gs();
-        if(sc<cur-1e-6){cur=sc;imp=true}else ov=o0}
-      if(imp)break}
-    if(!imp)break}
-  build();
+  for(let ronde=0;ronde<30&&huidigeScore>1;ronde++){
+    let verbeterd=false;
+    for(const[atoom,aantalOpties,gekozenIndex]of keuzeLogboek.slice()){
+      for(let index=0;index<aantalOpties&&!verbeterd;index++){if(index===gekozenIndex)continue;
+        const vorigeKeuzes=gekozenOpties;gekozenOpties=new Map(gekozenOpties);gekozenOpties.set(atoom,index);bouwOpstelling();const score=totaleScore();
+        if(score<huidigeScore-1e-6){huidigeScore=score;verbeterd=true}else gekozenOpties=vorigeKeuzes}
+      if(verbeterd)break}
+    if(!verbeterd)break}
+  bouwOpstelling();
   // uitlijnen: hoofdbinding op veelvoud van 15°, huidige oriëntatie en zwaartepunt behouden
-  const th=(p,q)=>Math.atan2(q.y-p.y,q.x-p.x),u=Math.PI/12,[b0,b1]=refB;
-  const dl=Math.round(th(b0,b1)/u)*u-th(pos.get(b0),pos.get(b1)),cs=Math.cos(dl),sn=Math.sin(dl);
-  const rot=new Map(A.map(a=>{const q=pos.get(a);return[a,{x:q.x*cs-q.y*sn,y:q.x*sn+q.y*cs}]}));
-  const mean=f=>A.reduce((t,a)=>t+f(a),0)/A.length;
-  const sx=mean(a=>a.x)-mean(a=>rot.get(a).x),sy=mean(a=>a.y)-mean(a=>rot.get(a).y);
-  const X=a=>rot.get(a).x+sx,Y=a=>rot.get(a).y+sy;
-  const mnx=Math.min(...A.map(a=>X(a)-a.r)),mxx=Math.max(...A.map(a=>X(a)+a.r)),mny=Math.min(...A.map(a=>Y(a)-a.r)),mxy=Math.max(...A.map(a=>Y(a)+a.r));
-  const fx=mnx<0?-mnx:mxx>W?W-mxx:0,fy=mny<0?-mny:mxy>H?H-mxy:0;
-  A.forEach(a=>{a.x=X(a)+fx;a.y=Y(a)+fy});
+  const hoekTussen=(vanPositie,naarPositie)=>Math.atan2(naarPositie.y-vanPositie.y,naarPositie.x-vanPositie.x),rasterStap=Math.PI/12,[referentieAtoomA,referentieAtoomB]=referentieBinding;
+  const draaiing=Math.round(hoekTussen(referentieAtoomA,referentieAtoomB)/rasterStap)*rasterStap-hoekTussen(posities.get(referentieAtoomA),posities.get(referentieAtoomB)),cosinus=Math.cos(draaiing),sinus=Math.sin(draaiing);
+  const geroteerdePosities=new Map(moleculeAtomen.map(atoom=>{const positie=posities.get(atoom);return[atoom,{x:positie.x*cosinus-positie.y*sinus,y:positie.x*sinus+positie.y*cosinus}]}));
+  const gemiddelde=waardeFunctie=>moleculeAtomen.reduce((som,atoom)=>som+waardeFunctie(atoom),0)/moleculeAtomen.length;
+  const verschuivingX=gemiddelde(positie=>positie.x)-gemiddelde(atoom=>geroteerdePosities.get(atoom).x),verschuivingY=gemiddelde(positie=>positie.y)-gemiddelde(atoom=>geroteerdePosities.get(atoom).y);
+  const nieuweX=atoom=>geroteerdePosities.get(atoom).x+verschuivingX,nieuweY=atoom=>geroteerdePosities.get(atoom).y+verschuivingY;
+  const minX=Math.min(...moleculeAtomen.map(atoom=>nieuweX(atoom)-atoom.straalAtoom)),maxX=Math.max(...moleculeAtomen.map(atoom=>nieuweX(atoom)+atoom.straalAtoom)),minY=Math.min(...moleculeAtomen.map(atoom=>nieuweY(atoom)-atoom.straalAtoom)),maxY=Math.max(...moleculeAtomen.map(atoom=>nieuweY(atoom)+atoom.straalAtoom));
+  const correctieX=minX<0?-minX:maxX>breedte?breedte-maxX:0,correctieY=minY<0?-minY:maxY>hoogte?hoogte-maxY:0;
+  moleculeAtomen.forEach(positie=>{positie.x=nieuweX(positie)+correctieX;positie.y=nieuweY(positie)+correctieY});
   return true}
 // ===EINDE===
 // molecule als transparante PNG
-const plain=t=>t.replace(/[₀-₉]/g,d=>'₀₁₂₃₄₅₆₇₈₉'.indexOf(d));
-function renderMol(c,sc=3){
-  const m=atoms.filter(a=>a.c===c),pad=16,ms=new Set(m),bs=bonds.filter(b=>ms.has(b.a));
-  const x0=Math.min(...m.map(a=>a.x-a.r))-pad,y0=Math.min(...m.map(a=>a.y-a.r))-pad,
-        x1=Math.max(...m.map(a=>a.x+a.r))+pad,y1=Math.max(...m.map(a=>a.y+a.r))+pad;
-  const cvs=document.createElement('canvas');cvs.width=Math.ceil((x1-x0)*sc);cvs.height=Math.ceil((y1-y0)*sc);
-  const g=cvs.getContext('2d');g.scale(sc,sc);g.translate(-x0,-y0);g.lineCap='round';
-  const lines=(col,w)=>{g.strokeStyle=col;g.lineWidth=w;
-    for(const b of bs){const dx=b.b.x-b.a.x,dy=b.b.y-b.a.y,l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;
-      for(const o of b.o===1?[0]:b.o===2?[-4,4]:[-7,0,7]){g.beginPath();g.moveTo(b.a.x+nx*o,b.a.y+ny*o);g.lineTo(b.b.x+nx*o,b.b.y+ny*o);g.stroke()}}};
-  lines('#0d1117',5.5);lines('#8b98a8',3.5);
-  for(const a of m){const e=EL[a.s];
-    const gr=g.createRadialGradient(a.x-a.r*.35,a.y-a.r*.4,a.r*.1,a.x,a.y,a.r);
-    gr.addColorStop(0,'rgba(255,255,255,.55)');gr.addColorStop(.35,e.c);gr.addColorStop(1,e.c);
-    g.beginPath();g.arc(a.x,a.y,a.r,0,7);g.fillStyle=e.c;g.fill();g.fillStyle=gr;g.fill();
-    g.lineWidth=2;g.strokeStyle='rgba(13,17,23,.9)';g.stroke();
-    g.fillStyle=e.t;g.font=`700 ${Math.round(a.r*.8)}px 'Space Mono',monospace`;g.textAlign='center';g.textBaseline='middle';g.fillText(a.s,a.x,a.y+1)}
-  return cvs}
-const molBlob=c=>new Promise(res=>renderMol(c).toBlob(res,'image/png'));
-function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1800)}
-$('order').onclick=()=>{if(!sel)return;const r=ordenen(sel.c);
-  if(r==='fused')showDlg('Ordenen niet mogelijk','Moleculen met gefuseerde ringen (zoals naftaleen) kunnen nog niet geordend worden.','OK');
-  else if(r!==true)showDlg('Ordenen niet gelukt','Deze molecule kon niet geordend worden.','OK')};
-$('molDl').onclick=()=>{if(!sel)return;computeComps();const c=sel.c,m={};
-  atoms.filter(a=>a.c===c).forEach(a=>m[a.s]=(m[a.s]||0)+1);
-  molBlob(c).then(b=>saveBlob(b,plain(formula(m))+'.png','image/png','.png','PNG-afbeelding'))};
-$('molCp').onclick=async()=>{if(!sel)return;computeComps();const c=sel.c;
+const naarPlatteTekst=tekst=>tekst.replace(/[₀-₉]/g,teken=>'₀₁₂₃₄₅₆₇₈₉'.indexOf(teken));
+function tekenMolecule(moleculeNr,schaal=3){
+  const moleculeAtomen=atomen.filter(atoom=>atoom.componentNr===moleculeNr),marge=16,moleculeAtomenSet=new Set(moleculeAtomen),moleculeBindingen=bindingen.filter(binding=>moleculeAtomenSet.has(binding.atoomA));
+  const minX=Math.min(...moleculeAtomen.map(atoom=>atoom.x-atoom.straalAtoom))-marge,minY=Math.min(...moleculeAtomen.map(atoom=>atoom.y-atoom.straalAtoom))-marge,
+        maxX=Math.max(...moleculeAtomen.map(atoom=>atoom.x+atoom.straalAtoom))+marge,maxY=Math.max(...moleculeAtomen.map(atoom=>atoom.y+atoom.straalAtoom))+marge;
+  const afbeeldingCanvas=document.createElement('canvas');afbeeldingCanvas.width=Math.ceil((maxX-minX)*schaal);afbeeldingCanvas.height=Math.ceil((maxY-minY)*schaal);
+  const afbeeldingContext=afbeeldingCanvas.getContext('2d');afbeeldingContext.scale(schaal,schaal);afbeeldingContext.translate(-minX,-minY);afbeeldingContext.lineCap='round';
+  const tekenLijnen=(kleur,lijnbreedte)=>{afbeeldingContext.strokeStyle=kleur;afbeeldingContext.lineWidth=lijnbreedte;
+    for(const binding of moleculeBindingen){const verschilX=binding.atoomB.x-binding.atoomA.x,verschilY=binding.atoomB.y-binding.atoomA.y,lengte=Math.hypot(verschilX,verschilY)||1,normaalX=-verschilY/lengte,normaalY=verschilX/lengte;
+      for(const verschuiving of binding.bindingsorde===1?[0]:binding.bindingsorde===2?[-4,4]:[-7,0,7]){afbeeldingContext.beginPath();afbeeldingContext.moveTo(binding.atoomA.x+normaalX*verschuiving,binding.atoomA.y+normaalY*verschuiving);afbeeldingContext.lineTo(binding.atoomB.x+normaalX*verschuiving,binding.atoomB.y+normaalY*verschuiving);afbeeldingContext.stroke()}}};
+  tekenLijnen('#0d1117',5.5);tekenLijnen('#8b98a8',3.5);
+  for(const atoom of moleculeAtomen){const elementDefinitie=ELEMENTEN[atoom.symbool];
+    const kleurverloop=afbeeldingContext.createRadialGradient(atoom.x-atoom.straalAtoom*.35,atoom.y-atoom.straalAtoom*.4,atoom.straalAtoom*.1,atoom.x,atoom.y,atoom.straalAtoom);
+    kleurverloop.addColorStop(0,'rgba(255,255,255,.55)');kleurverloop.addColorStop(.35,elementDefinitie.kleurAtoom);kleurverloop.addColorStop(1,elementDefinitie.kleurAtoom);
+    afbeeldingContext.beginPath();afbeeldingContext.arc(atoom.x,atoom.y,atoom.straalAtoom,0,7);afbeeldingContext.fillStyle=elementDefinitie.kleurAtoom;afbeeldingContext.fill();afbeeldingContext.fillStyle=kleurverloop;afbeeldingContext.fill();
+    afbeeldingContext.lineWidth=2;afbeeldingContext.strokeStyle='rgba(13,17,23,.9)';afbeeldingContext.stroke();
+    afbeeldingContext.fillStyle=elementDefinitie.tekstkleurAtoom;afbeeldingContext.font=`700 ${Math.round(atoom.straalAtoom*.8)}px 'Space Mono',monospace`;afbeeldingContext.textAlign='center';afbeeldingContext.textBaseline='middle';afbeeldingContext.fillText(atoom.symbool,atoom.x,atoom.y+1)}
+  return afbeeldingCanvas}
+const moleculeNaarBlob=moleculeNr=>new Promise(oplossen=>tekenMolecule(moleculeNr).toBlob(oplossen,'image/png'));
+function toonMelding(tekst){const meldingElement=haalElement('toast');meldingElement.textContent=tekst;meldingElement.classList.add('show');clearTimeout(toonMelding.verbergTimer);toonMelding.verbergTimer=setTimeout(()=>meldingElement.classList.remove('show'),1800)}
+haalElement('order').onclick=()=>{if(!geselecteerdAtoom)return;const resultaat=ordenMolecule(geselecteerdAtoom.componentNr);
+  if(resultaat==='fused')toonDialoog('Ordenen niet mogelijk','Moleculen met gefuseerde ringen (zoals naftaleen) kunnen nog niet geordend worden.','OK');
+  else if(resultaat!==true)toonDialoog('Ordenen niet gelukt','Deze molecule kon niet geordend worden.','OK')};
+haalElement('molDl').onclick=()=>{if(!geselecteerdAtoom)return;bepaalMoleculen();const moleculeNr=geselecteerdAtoom.componentNr,aantallen={};
+  atomen.filter(atoom=>atoom.componentNr===moleculeNr).forEach(atoom=>aantallen[atoom.symbool]=(aantallen[atoom.symbool]||0)+1);
+  moleculeNaarBlob(moleculeNr).then(afbeeldingBlob=>slaBestandOp(afbeeldingBlob,naarPlatteTekst(bouwFormule(aantallen))+'.png','image/png','.png','PNG-afbeelding'))};
+haalElement('molCp').onclick=async()=>{if(!geselecteerdAtoom)return;bepaalMoleculen();const moleculeNr=geselecteerdAtoom.componentNr;
   try{if(!navigator.clipboard||!window.ClipboardItem)throw 0;
-    await navigator.clipboard.write([new ClipboardItem({'image/png':molBlob(c)})]);toast('Molecule gekopieerd naar het klembord')}
-  catch(e){showDlg('Kopiëren lukt niet','Deze browser of pagina staat kopiëren van afbeeldingen niet toe. Gebruik "Download molecule" in plaats daarvan.','OK')}};
-$('save').onclick=saveField;
-$('open').onclick=()=>$('file').click();
-$('file').onchange=e=>{loadFile(e.target.files[0]);e.target.value=''};
-main.addEventListener('dragover',e=>e.preventDefault());
-main.addEventListener('drop',e=>{e.preventDefault();loadFile(e.dataTransfer.files[0])});
-addEventListener('keydown',e=>{if(e.key==='Escape')closeDlg()});
-$('copy').onclick=()=>{copyMode=!copyMode;$('copy').setAttribute('aria-checked',copyMode);cv.style.cursor=copyMode?'copy':'default'};
-$('mode').onclick=()=>{splitMode=!splitMode;$('mode').setAttribute('aria-checked',splitMode);lastInfo='';updateInfo()};
+    await navigator.clipboard.write([new ClipboardItem({'image/png':moleculeNaarBlob(moleculeNr)})]);toonMelding('Molecule gekopieerd naar het klembord')}
+  catch(fout){toonDialoog('Kopiëren lukt niet','Deze browser of pagina staat kopiëren van afbeeldingen niet toe. Gebruik "Download molecule" in plaats daarvan.','OK')}};
+haalElement('save').onclick=slaWerkveldOp;
+haalElement('open').onclick=()=>haalElement('file').click();
+haalElement('file').onchange=gebeurtenis=>{leesBestand(gebeurtenis.target.files[0]);gebeurtenis.target.value=''};
+werkveld.addEventListener('dragover',gebeurtenis=>gebeurtenis.preventDefault());
+werkveld.addEventListener('drop',gebeurtenis=>{gebeurtenis.preventDefault();leesBestand(gebeurtenis.dataTransfer.files[0])});
+addEventListener('keydown',gebeurtenis=>{if(gebeurtenis.key==='Escape')sluitDialoog()});
+haalElement('copy').onclick=()=>{kopieerModus=!kopieerModus;haalElement('copy').setAttribute('aria-checked',kopieerModus);canvas.style.cursor=kopieerModus?'copy':'default'};
+haalElement('mode').onclick=()=>{gesplitstModus=!gesplitstModus;haalElement('mode').setAttribute('aria-checked',gesplitstModus);laatsteInfoHtml='';werkInfoBij()};
 
-resize();updateInfo();requestAnimationFrame(draw);
+pasCanvasAan();werkInfoBij();requestAnimationFrame(tekenFrame);
 </script>
 </body>
 </html>
